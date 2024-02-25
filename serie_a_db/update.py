@@ -20,17 +20,19 @@ class DbTable(ABC):
 
     @abstractmethod
     def update(self, data):
-        pass
+        """Update the table with the given data."""
 
 
 class DefinitionQuery(BaseModel):
+    """Represent a SQL query for creating a table."""
+
     query: str
     name: str
     DEFINITIONS_DIR: ClassVar[Path] = DEFINITIONS_DIR
 
     @model_validator(mode="after")
-    def check_query_is_create(self) -> None:
-        """Validates that the query is a valid CREATE statement."""
+    def check_query_is_create(self) -> Self:
+        """Validate that the query is a valid CREATE statement."""
         must_have = f"CREATE TABLE IF NOT EXISTS {self.name} "
         if must_have not in self.query:
             raise ValueError("Query must contain a valid CREATE TABLE statement.")
@@ -50,10 +52,10 @@ class DefinitionQuery(BaseModel):
 
     @classmethod
     def from_file(cls, table_name: str) -> Self:
-        """Creates a DefinitionQuery from a file."""
+        """Create a DefinitionQuery from a file."""
         return cls(query=cls.read_query_from_file(table_name), name=table_name)
 
     @classmethod
     def read_query_from_file(cls, table_name: str) -> str:
-        """Reads a SQL query from a file."""
+        """Read a SQL query from a file."""
         return (cls.DEFINITIONS_DIR / f"{table_name}.sql").read_text()

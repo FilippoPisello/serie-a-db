@@ -1,13 +1,16 @@
-import argparse
+"""Module entry point."""
+
+from argparse import ArgumentParser, Namespace
 
 
 def main() -> None:
+    """Run the Serie A database."""
     args = _parse_args()
     print(args.update)
 
 
-def _parse_args() -> None:
-    parser = argparse.ArgumentParser(prog="serie_a_db", description="Serie A database")
+def _parse_args() -> Namespace:
+    parser = ArgumentParser(prog="serie_a_db", description="Serie A database")
     parser.add_argument(
         "--update",
         action="extend",

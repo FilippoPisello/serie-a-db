@@ -12,6 +12,8 @@ extend-select = [
 
 ignore = [
     "D107", # pydocstyle: missing docstring in __init__
+    "D203", # pydocstyle: 1 blank line required before class docstring
+    "D213", # pydocstyle: multi-line docstring summary should start at the second line
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]
