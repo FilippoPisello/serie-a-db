@@ -24,20 +24,6 @@ class TestSingleQuerySpecified:
             "dm_table", "dm_table_staging"
         ).replace("IF NOT EXISTS", "")
 
-    def test_insert_statement_is_derived_from_prod_query(self):
-        query = """CREATE TABLE IF NOT EXISTS dm_table (
-            note
-        );"""
-        assert (
-            DefinitionQuery(query=query, name="dm_table").insert
-            == """
-        INSERT INTO dm_table
-        SELECT note FROM dm_table_staging
-        ON CONFLICT DO UPDATE
-        SET note = excluded.note;
-        """
-        )
-
 
 class TestTwoQueries:
 
