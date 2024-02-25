@@ -30,7 +30,7 @@ class TestSingleQuerySpecified:
         );"""
         assert (
             DefinitionQuery(query=query, name="dm_table").insert
-            == f"""
+            == """
         INSERT INTO dm_table
         SELECT note FROM dm_table_staging
         ON CONFLICT DO UPDATE

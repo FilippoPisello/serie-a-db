@@ -1,6 +1,7 @@
 """Generic classes for updating a database table."""
 
 from abc import ABC, abstractmethod
+from pathlib import Path
 from sqlite3 import Cursor
 from typing import ClassVar, Self
 
@@ -25,7 +26,7 @@ class DbTable(ABC):
 class DefinitionQuery(BaseModel):
     query: str
     name: str
-    DEFINITIONS_DIR: ClassVar[str] = DEFINITIONS_DIR
+    DEFINITIONS_DIR: ClassVar[Path] = DEFINITIONS_DIR
 
     @model_validator(mode="after")
     def check_query_is_create(self) -> None:

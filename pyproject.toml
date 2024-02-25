@@ -1,0 +1,20 @@
+[tool.ruff.lint]
+extend-select = [
+    "E501", # pycodestyle: line too long
+    "I",    # isort
+    "N",    # pep8-naming
+    "D",    # pydocstyle
+    "ARG",  # flake8: unused arguments
+    "PD",   # pandas-vet
+    "PL",   # pylint
+    "UP",   # pyupgrade
+]
+
+ignore = [
+    "D107", # pydocstyle: missing docstring in __init__
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/*.py" = [
+    "D", # pydocstyle
+]
