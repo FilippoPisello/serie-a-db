@@ -29,7 +29,7 @@ class TestSingleQuery:
         query = """CREATE TABLE IF NOT EXISTS dm_table (
             note
         );"""
-        assert DefinitionQuery(query=query, name="dm_table").prod == query
+        assert DefinitionQuery(query=query, name="dm_table").create_prod_table == query
 
     def test_staging_query_is_derived_from_prod_query(self):
         query = """CREATE TABLE IF NOT EXISTS dm_table (
@@ -39,7 +39,7 @@ class TestSingleQuery:
             note
         );"""
         assert strings_equivalent(
-            DefinitionQuery(query=query, name="dm_table").staging, expected
+            DefinitionQuery(query=query, name="dm_table").create_staging_table, expected
         )
 
     def test_insert_statement_is_derived_from_prod_query_one_column(self):
@@ -55,7 +55,8 @@ class TestSingleQuery:
         """
 
         assert strings_equivalent(
-            DefinitionQuery(query=query, name="dm_table").insert, expected
+            DefinitionQuery(query=query, name="dm_table").insert_from_staging_to_prod,
+            expected,
         )
 
     def test_insert_statement_is_derived_from_prod_query_multiple_columns(self):
@@ -72,7 +73,8 @@ class TestSingleQuery:
         """
 
         assert strings_equivalent(
-            DefinitionQuery(query=query, name="dm_table").insert, expected
+            DefinitionQuery(query=query, name="dm_table").insert_from_staging_to_prod,
+            expected,
         )
 
 
@@ -153,19 +155,19 @@ class TestMoreThanOneQuery:
         SET note = excluded.a_note;
         """
         assert strings_equivalent(
-            DefinitionQuery(query=query, name="dm_table").prod,
+            DefinitionQuery(query=query, name="dm_table").create_prod_table,
             """CREATE TABLE IF NOT EXISTS dm_table (
                 note
             );""",
         )
         assert strings_equivalent(
-            DefinitionQuery(query=query, name="dm_table").staging,
+            DefinitionQuery(query=query, name="dm_table").create_staging_table,
             """CREATE TABLE dm_table_staging (
             a_note
             );""",
         )
         assert strings_equivalent(
-            DefinitionQuery(query=query, name="dm_table").insert,
+            DefinitionQuery(query=query, name="dm_table").insert_from_staging_to_prod,
             """
             INSERT INTO dm_table
             SELECT a_note FROM dm_table_staging

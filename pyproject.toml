@@ -20,3 +20,6 @@ ignore = [
 "tests/*.py" = [
     "D", # pydocstyle
 ]
+"*/__init__.py" = [
+    "F401", # unused import
+]
