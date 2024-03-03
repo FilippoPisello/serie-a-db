@@ -40,13 +40,22 @@ class DefinitionQuery(BaseModel):
 
     @model_validator(mode="after")
     def check_query(self) -> Self:
-        """Validate that the query is a valid CREATE statement."""
+        """Validate that the sql file follows the expected format.
+
+        Two options are allowed:
+        - A single statement for creating the prod table.
+        - 3+ statements for creating the prod table, creating the staging table,
+            and inserting data into the prod table.
+
+        In case of single statement, the other two properties are derived from
+        it.
+        """
         self._has_one_or_three_plus_statements()
         statements = split_no_empty(self.query, ";", maxplit=2)
-        self._has_create_statement(statements)
+        self._is_valid_create_statement(statements[0])
         if len(statements) > 1:
-            self._has_create_staging_statement(statements)
-            self._has_insert_statement(statements)
+            self._is_valid_create_staging_statement(statements[1])
+            self._contains_valid_insert_statement(statements[2:])
         return self
 
     def _has_one_or_three_plus_statements(self):
@@ -54,16 +63,16 @@ class DefinitionQuery(BaseModel):
         if number_of_statements != 1 and number_of_statements > 3:  # noqa: PLR2004
             raise NumberOfStatementsError(self.file_path, number_of_statements)
 
-    def _has_create_statement(self, statements):
-        if f"CREATE TABLE IF NOT EXISTS {self.name} " not in statements[0]:
+    def _is_valid_create_statement(self, statement: str) -> None:
+        if f"CREATE TABLE IF NOT EXISTS {self.name} " not in statement:
             raise CreateStatementError(self.file_path)
 
-    def _has_create_staging_statement(self, statements):
-        if f"CREATE TABLE {self.name}_staging " not in statements[1]:
+    def _is_valid_create_staging_statement(self, statement: str) -> None:
+        if f"CREATE TABLE {self.name}_staging " not in statement:
             raise CreateStatementError(self.file_path)
 
-    def _has_insert_statement(self, statements):
-        insert_statements = ";\n".join(statements[2:])
+    def _contains_valid_insert_statement(self, statements: list[str]) -> None:
+        insert_statements = ";\n".join(statements)
         if f"INSERT INTO {self.name}" not in insert_statements:
             raise InsertStatementError(self.file_path)
 
