@@ -1,9 +1,7 @@
 """Generic classes for updating a database table."""
 
 import re
-from abc import ABC, abstractmethod
 from pathlib import Path
-from sqlite3 import Cursor
 from typing import ClassVar, Self
 
 from pydantic import BaseModel, model_validator
@@ -16,19 +14,6 @@ from serie_a_db.exceptions import (
     NumberOfStatementsError,
 )
 from serie_a_db.utils import split_no_empty, strip_whitespaces_and_newlines
-
-
-class DbTable(ABC):
-    """Generic class for updating a database table."""
-
-    NAME = None
-
-    def __init__(self, db: Cursor) -> None:
-        self.db = db
-
-    @abstractmethod
-    def update(self, data):
-        """Update the table with the given data."""
 
 
 class DefinitionQuery(BaseModel):
@@ -77,7 +62,7 @@ class DefinitionQuery(BaseModel):
             raise InsertStatementError(self.file_path)
 
     @property
-    def prod(self) -> str:
+    def create_prod_table(self) -> str:
         """The production query."""
         return self._split_statements()[0]
 
@@ -89,19 +74,19 @@ class DefinitionQuery(BaseModel):
             return self.query, None, None
 
     @property
-    def staging(self) -> str:
+    def create_staging_table(self) -> str:
         """The staging query."""
         statement = self._split_statements()[1]
         # If the staging table is defined in the query, return it
         if statement:
             return statement
         # Otherwise, derive it from the prod table
-        return self.prod.replace(self.name, f"{self.name}_staging").replace(
-            "IF NOT EXISTS", ""
-        )
+        return self.create_prod_table.replace(
+            self.name, f"{self.name}_staging"
+        ).replace("IF NOT EXISTS", "")
 
     @property
-    def insert(self) -> str:
+    def insert_from_staging_to_prod(self) -> str:
         """The insert statement."""
         statement = self._split_statements()[2]
         # If the insert statement is defined in the query, return it
@@ -119,7 +104,7 @@ class DefinitionQuery(BaseModel):
 
     def _prod_columns(self) -> list[str]:
         """Return the columns of the table."""
-        re_match = re.search(r"\(([\S\s]*)\)", self.prod)
+        re_match = re.search(r"\(([\S\s]*)\)", self.create_prod_table)
         if re_match is None:
             raise ColumnsNotFoundError(self.file_path, self.query)
         columns_text = re_match.group(1)
