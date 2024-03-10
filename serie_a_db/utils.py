@@ -1,5 +1,6 @@
 """Useful support functions."""
 
+import datetime
 import re
 
 
@@ -18,3 +19,16 @@ def split_no_empty(string: str, sep: str, maxplit: int = -1) -> list[str]:
 def from_camel_to_snake_case(name: str) -> str:
     """Convert a camel case string to snake case."""
     return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+FREEZE_TIME_TO = None
+
+
+def now() -> datetime.datetime:
+    """Return the current date and time.
+
+    Redefining this function to allow for time freezing in tests.
+    """
+    if FREEZE_TIME_TO:
+        return FREEZE_TIME_TO
+    return datetime.datetime.now()
