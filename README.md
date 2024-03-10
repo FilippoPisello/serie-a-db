@@ -18,3 +18,6 @@ Matchday 1 season 21/22
 https://www.legaseriea.it/api/stats/live/match?extra_link&order=oldest&lang=en&season_id=30030&page=1&limit=20&pag&match_day_id=30093
 
 https://www.legaseriea.it/api/stats/live/match?extra_link&order=oldest&lang=en&season_id=150051&page=1&limit=20&pag&match_day_id=150193
+
+All matchdays of a season
+https://www.legaseriea.it/api/season/120076/championship/A/matchday?lang=it
