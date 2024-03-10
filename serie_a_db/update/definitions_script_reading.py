@@ -91,11 +91,12 @@ class DefinitionScript(BaseModel):
         if statement:
             return statement
         # Otherwise, derive it from the prod table
-        columns_str = ", ".join(self.prod_columns())
-        on_str = ", ".join(f"{col} = excluded.{col}" for col in self.prod_columns())
+        columns_str = ", ".join(self.prod_columns)
+        on_str = ", ".join(f"{col} = excluded.{col}" for col in self.prod_columns)
         return f"""
         INSERT INTO {self.name}
         SELECT {columns_str} FROM {self.name}_staging
+        WHERE true -- Disambiguates the following ON from potential JOIN ON
         ON CONFLICT DO UPDATE
         SET {on_str};
         """
@@ -103,8 +104,8 @@ class DefinitionScript(BaseModel):
     @property
     def insert_values_into_staging(self) -> str:
         """The insert values statement to populate the staging table."""
-        columns_str = ", ".join(self.staging_columns())
-        question_marks = ", ".join("?" for _ in self.staging_columns())
+        columns_str = ", ".join(self.staging_columns)
+        question_marks = ", ".join("?" for _ in self.staging_columns)
         return f"""INSERT INTO {self.name}_staging({columns_str})
         VALUES({question_marks});"""
 
@@ -115,10 +116,12 @@ class DefinitionScript(BaseModel):
         except ValueError:
             return self.script, None, None
 
+    @property
     def prod_columns(self) -> Generator[str, None, None]:
         """Return the columns of the table."""
         return self._extract_columns_from_create_statement(self.create_prod_table)
 
+    @property
     def staging_columns(self) -> Generator[str, None, None]:
         """Return the columns of the staging table."""
         return self._extract_columns_from_create_statement(self.create_staging_table)
