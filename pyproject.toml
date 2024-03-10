@@ -8,6 +8,7 @@ extend-select = [
     "PD",   # pandas-vet
     "PL",   # pylint
     "UP",   # pyupgrade
+    "W292", # pycodestyle: no newline at end of file
 ]
 
 ignore = [
