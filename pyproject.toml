@@ -8,6 +8,7 @@ extend-select = [
     "PD",   # pandas-vet
     "PL",   # pylint
     "UP",   # pyupgrade
+    "W292", # pycodestyle: no newline at end of file
 ]
 
 ignore = [
@@ -18,7 +19,8 @@ ignore = [
 
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/*.py" = [
-    "D", # pydocstyle
+    "D",      # pydocstyle
+    "ARG001", # flake8: unused function argument (fixtures can be false positives)
 ]
 "*/__init__.py" = [
     "F401", # unused import

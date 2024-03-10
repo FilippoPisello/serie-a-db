@@ -52,6 +52,7 @@ class TestSingleStatement:
                 """CREATE TABLE IF NOT EXISTS dm_table (note);""",
                 """INSERT INTO dm_table
                 SELECT note FROM dm_table_staging
+                WHERE true -- Disambiguates the following ON from potential JOIN ON
                 ON CONFLICT DO UPDATE
                 SET note = excluded.note;
                 """,
@@ -60,6 +61,7 @@ class TestSingleStatement:
                 """CREATE TABLE IF NOT EXISTS dm_table (note, date);""",
                 """INSERT INTO dm_table
                 SELECT note, date FROM dm_table_staging
+                WHERE true -- Disambiguates the following ON from potential JOIN ON
                 ON CONFLICT DO UPDATE
                 SET note = excluded.note,
                     date = excluded.date;
