@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 from serie_a_db.update.update import DbTable
 
 
