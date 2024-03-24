@@ -4,14 +4,15 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pydantic = "==2.6.2"
-requests = "==2.31.0"
+pydantic = "~=2.6.2"
+requests = "~=2.31.0"
+beautifulsoup4 = "~=4.12"
 
 [dev-packages]
-black = "==24.2.0"
-mypy = "*"
-pytest = "==8.0.1"
-ruff = "*"
+black = "~=24.2"
+mypy = "~=1.8"
+pytest = "~=8.0"
+ruff = "==0.2.2"
 
 [requires]
 python_version = "3.12"
