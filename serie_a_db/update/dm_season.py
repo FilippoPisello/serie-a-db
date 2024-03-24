@@ -2,7 +2,7 @@
 
 from typing import NamedTuple
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 
 from serie_a_db.input_base_model import DbInputBaseModel
 from serie_a_db.scrape.lega_serie_a_website import SerieAWebsite
@@ -47,6 +47,12 @@ def _find_seasons(homepage: str) -> list[tuple[int, int]]:
     """Extract the seasons from the homepage."""
     soup = BeautifulSoup(homepage, "html.parser")
     selector = soup.find("select", attrs={"class": "hm-select", "name": "season"})
+
+    if selector is None:
+        raise ValueError("Season selector not found in the Serie A homepage.")
+    if isinstance(selector, NavigableString):
+        raise ValueError("Season selector has not the expected format.")
+
     return [
         (int(option.text[:4]), int(option["value"]))
         for option in selector.find_all("option")
