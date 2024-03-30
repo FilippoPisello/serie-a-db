@@ -1,12 +1,10 @@
 from collections import namedtuple
-from datetime import datetime
 from typing import NamedTuple
 
 import pytest
 
-from serie_a_db import utils
 from serie_a_db.db_setup import Db
-from serie_a_db.update.update import DbTable
+from serie_a_db.update.table_update import DbTable
 
 
 def test_table_name():
@@ -41,24 +39,6 @@ class TestDataCompatibilityCheck:
         DbTable.error_if_data_incompatible(data, columns)
 
 
-@pytest.fixture(name="db")
-def in_memory_db():
-    """Provide a Db instance in memory."""
-    db = Db.in_memory()
-    try:
-        yield db
-    finally:
-        db.close_connection()
-
-
-@pytest.fixture()
-def freeze_time():
-    """Freeze time to 2024-01-01 12:00:00."""
-    utils.FREEZE_TIME_TO = datetime(2024, 1, 1, 12, 0, 0)
-    yield
-    utils.FREEZE_TIME_TO = None
-
-
 def test_update_is_logged_in_meta_table(db: Db, freeze_time):
     """Table updates are logged in a dedicated table."""
     # Arrange
@@ -79,5 +59,6 @@ def test_update_is_logged_in_meta_table(db: Db, freeze_time):
     DmDummy.from_string(db, script).update()
 
     # Assert
-    result = db.execute("SELECT * FROM ft_tables_update").fetchall()
-    assert result == [("dm_dummy", "2024-01-01 12:00:00", len(records))]
+    assert db.get_all_rows("ft_tables_update") == [
+        ("dm_dummy", "2024-01-01 12:00:00", len(records))
+    ]

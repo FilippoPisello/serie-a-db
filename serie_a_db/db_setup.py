@@ -45,3 +45,7 @@ class Db:
     def count_rows(self, table_name: str) -> int:
         """Return the number of rows in the table."""
         return self.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+
+    def get_all_rows(self, table_name: str) -> list[tuple]:
+        """Return all rows from the table."""
+        return self.execute(f"SELECT * FROM {table_name}").fetchall()
