@@ -49,7 +49,9 @@ class TestSingleStatement:
         ("prod_script", "expected"),
         (
             (  # One column
-                """CREATE TABLE IF NOT EXISTS dm_table (note);""",
+                """CREATE TABLE IF NOT EXISTS dm_table (
+                    note
+                );""",
                 """INSERT INTO dm_table
                 SELECT note FROM dm_table_staging
                 WHERE true -- Disambiguates the following ON from potential JOIN ON
@@ -58,7 +60,10 @@ class TestSingleStatement:
                 """,
             ),
             (  # Multiple columns
-                """CREATE TABLE IF NOT EXISTS dm_table (note, date);""",
+                """CREATE TABLE IF NOT EXISTS dm_table (
+                    note,
+                    date
+                );""",
                 """INSERT INTO dm_table
                 SELECT note, date FROM dm_table_staging
                 WHERE true -- Disambiguates the following ON from potential JOIN ON
@@ -82,12 +87,17 @@ class TestSingleStatement:
         ("prod_script", "expected"),
         (
             (  # One column
-                """CREATE TABLE IF NOT EXISTS dm_table (note);""",
+                """CREATE TABLE IF NOT EXISTS dm_table (
+                    note
+                );""",
                 """INSERT INTO dm_table_staging(note)
                 VALUES(?);""",
             ),
             (  # Multiple columns
-                """CREATE TABLE IF NOT EXISTS dm_table (note, date);""",
+                """CREATE TABLE IF NOT EXISTS dm_table (
+                    note,
+                    date
+                );""",
                 """INSERT INTO dm_table_staging(note, date)
                 VALUES(?, ?);""",
             ),
@@ -101,6 +111,68 @@ class TestSingleStatement:
             definition_script.insert_values_into_staging,
             expected,
         )
+
+    @pytest.mark.parametrize(
+        ("prod_script", "expected_columns"),
+        (
+            (  # One column
+                """CREATE TABLE IF NOT EXISTS dm_table (
+                    note
+                );""",
+                ("note",),
+            ),
+            (  # One column with CHECK clause containing a comma
+                """CREATE TABLE IF NOT EXISTS dm_table (
+                    note CHECK (note IN ('a', 'b'))
+                );""",
+                ("note",),
+            ),
+            (  # Multiple columns
+                """CREATE TABLE IF NOT EXISTS dm_table (
+                    note,
+                    date
+                );""",
+                ("note", "date"),
+            ),
+            (  # Multiple columns with first column having a CHECK clause
+                """CREATE TABLE IF NOT EXISTS dm_table (
+                    note CHECK (note IN ('a', 'b')),
+                    date
+                );""",
+                ("note", "date"),
+            ),
+            (  # Multiple columns with second column having a CHECK clause
+                """CREATE TABLE IF NOT EXISTS dm_table (
+                    note,
+                    date CHECK (date IN ('a', 'b'))
+                );""",
+                ("note", "date"),
+            ),
+            (  # Multiple columns ending with a CHECK clause
+                """CREATE TABLE IF NOT EXISTS dm_table (
+                    note,
+                    date,
+                    CHECK (note IN ('a', 'b'))
+                );""",
+                ("note", "date"),
+            ),
+            (  # Multiple columns ending with a PRIMARY KEY clause
+                """CREATE TABLE IF NOT EXISTS dm_table (
+                    note,
+                    date,
+                    PRIMARY KEY (note)
+                );""",
+                ("note", "date"),
+            ),
+        ),
+    )
+    def test_prod_and_staging_columns_are_same_and_derived_from_prod_statement(
+        self, prod_script, expected_columns
+    ):
+        definition_script = DefinitionScript(script=prod_script, name="dm_table")
+
+        assert definition_script.prod_columns == definition_script.staging_columns
+        assert definition_script.staging_columns == expected_columns
 
 
 class TestMoreThanOneStatement:
@@ -207,12 +279,17 @@ class TestMoreThanOneStatement:
         ("staging_statement", "expected"),
         (
             (  # One column
-                """CREATE TABLE dm_table_staging (a_note);""",
+                """CREATE TABLE dm_table_staging (
+                    a_note
+                );""",
                 """INSERT INTO dm_table_staging(a_note)
                 VALUES(?);""",
             ),
             (  # Multiple columns
-                """CREATE TABLE dm_table_staging (a_note, a_date);""",
+                """CREATE TABLE dm_table_staging (
+                a_note,
+                a_date
+                );""",
                 """INSERT INTO dm_table_staging(a_note, a_date)
                 VALUES(?, ?);""",
             ),

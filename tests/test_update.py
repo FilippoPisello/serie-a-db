@@ -47,7 +47,8 @@ def test_update_is_logged_in_meta_table(db: Db, freeze_time):
     dummy = namedtuple("Dummy", ["dummy_id", "dummy_name"])
     records = [dummy(1, "dummy"), dummy(2, "dummy")]
     script = """CREATE TABLE IF NOT EXISTS dm_dummy (
-            dummy_id INTEGER PRIMARY KEY, dummy_name
+            dummy_id INTEGER PRIMARY KEY,
+            dummy_name
     );"""
 
     class DmDummy(DbTable):
