@@ -2,7 +2,7 @@
 
 import re
 from pathlib import Path
-from typing import ClassVar, Generator, Self
+from typing import ClassVar, Self
 
 from pydantic import BaseModel, model_validator
 
@@ -117,27 +117,42 @@ class DefinitionScript(BaseModel):
             return self.script, None, None
 
     @property
-    def prod_columns(self) -> Generator[str, None, None]:
+    def prod_columns(self) -> tuple[str]:
         """Return the columns of the table."""
         return self._extract_columns_from_create_statement(self.create_prod_table)
 
     @property
-    def staging_columns(self) -> Generator[str, None, None]:
+    def staging_columns(self) -> tuple[str]:
         """Return the columns of the staging table."""
         return self._extract_columns_from_create_statement(self.create_staging_table)
 
     def _extract_columns_from_create_statement(
         self, create_statement: str
-    ) -> Generator[str, None, None]:
-        re_match = re.search(r"\(([\S\s]*)\)", create_statement)
-        if re_match is None:
-            raise ColumnsNotFoundError(self.file_path, self.script)
-        columns_text = strip_whitespaces_and_newlines(re_match.group(1)).strip("()")
-        # Steps of the parsing:
-        # Split by commas to isolate the single column definitions
+    ) -> tuple[str]:
+        # Matching anything between the first "(" and the last ")"
+        try:
+            # mypy does not understand the try-except construct
+            re_match = re.search(r"\(([\S\s.]*)\)", create_statement).group(1)  # type: ignore
+        except AttributeError as exc:
+            raise ColumnsNotFoundError(self.file_path, self.script) from exc
+
+        # Split by newline to isolate the single column definitions
+        col_definition_clauses = [
+            strip_whitespaces_and_newlines(col)
+            for col in re_match.split("\n")
+            if strip_whitespaces_and_newlines(col)
+        ]
         # Split by spaces to isolate the column name (from other stuff like
         # types, constraints, etc.)
-        return (x[0] for x in [col.split() for col in columns_text.split(",")])
+        columns_and_ending_clauses = tuple(
+            x[0].rstrip(",") for x in [col.split() for col in col_definition_clauses]
+        )
+        # Remove unwanted values like PRIMARY KEY, CHECK, etc.
+        return tuple(
+            col
+            for col in columns_and_ending_clauses
+            if col.upper() not in ("PRIMARY", "CHECK")
+        )  # type: ignore # mypy thinks we might have a tuple of str | None
 
     @classmethod
     def read_script_from_file(cls, table_name: str) -> str:
