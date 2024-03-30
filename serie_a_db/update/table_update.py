@@ -1,9 +1,10 @@
-"""Generic classes for updating a database table."""
+"""Logic to update a single database table."""
 
 from abc import ABC, abstractmethod
 from typing import NamedTuple, Self
 
 from serie_a_db.db_setup import Db
+from serie_a_db.exceptions import IncompatibleDataError
 from serie_a_db.update.definitions_script_reading import DefinitionScript
 from serie_a_db.utils import from_camel_to_snake_case, now
 
@@ -60,10 +61,10 @@ class DbTable(ABC):
         """
         # Assuming that if the first and last records are valid, the rest
         # of the records are valid as well
-        first_record_is_invalid = data[0]._fields != columns
-        last_record_is_invalid = data[-1]._fields != columns
-        if first_record_is_invalid or last_record_is_invalid:
-            raise ValueError("The data is not compatible with the table.")
+        if data[0]._fields != columns:
+            raise IncompatibleDataError(columns, data[0]._fields)
+        if data[-1]._fields != columns:
+            raise IncompatibleDataError(columns, data[-1]._fields)
 
     def populate_staging_table(self, data: list[NamedTuple]) -> None:
         """Populate the staging table."""
@@ -80,3 +81,8 @@ class DbTable(ABC):
             """,
             (self.table_name(), now().strftime("%Y-%m-%d %H:%M:%S"), n_rows),
         )
+
+    def mock_extract_response(self, data: list[NamedTuple]) -> None:
+        """Replace the extract_data method with a fixed data set."""
+        # mypy does not like this, but for testing purposes it is fine
+        self.extract_data = lambda: data  # type: ignore

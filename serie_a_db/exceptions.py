@@ -55,3 +55,14 @@ class ColumnsNotFoundError(QueryError):
             f"\n{query}"
         )
         super().__init__(message)
+
+
+class IncompatibleDataError(ValueError):
+    """The data extracted from the source is incompatible with the table."""
+
+    def __init__(self, expected_columns: tuple, data_columns: tuple):
+        message = (
+            "Cannot insert data into the staging table. "
+            f"Expected columns {expected_columns} but got {data_columns}."
+        )
+        super().__init__(message)

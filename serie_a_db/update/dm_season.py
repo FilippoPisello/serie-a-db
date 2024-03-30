@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup, NavigableString
 
 from serie_a_db.input_base_model import DbInputBaseModel
 from serie_a_db.scrape.lega_serie_a_website import SerieAWebsite
-from serie_a_db.update.update import DbTable
+from serie_a_db.update.table_update import DbTable
 
 
 class Season(DbInputBaseModel):
