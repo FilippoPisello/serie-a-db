@@ -59,5 +59,6 @@ def test_update_is_logged_in_meta_table(db: Db, freeze_time):
     DmDummy.from_string(db, script).update()
 
     # Assert
-    result = db.execute("SELECT * FROM ft_tables_update").fetchall()
-    assert result == [("dm_dummy", "2024-01-01 12:00:00", len(records))]
+    assert db.get_all_rows("ft_tables_update") == [
+        ("dm_dummy", "2024-01-01 12:00:00", len(records))
+    ]

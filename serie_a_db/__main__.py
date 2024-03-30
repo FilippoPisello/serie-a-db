@@ -2,27 +2,28 @@
 
 from argparse import ArgumentParser, Namespace
 
+from serie_a_db.db_setup import Db
+from serie_a_db.update.db_update import update_db
+
 
 def main() -> None:
     """Run the Serie A database."""
     args = _parse_args()
-    print(args.update)
+
+    db = Db()
+
+    if args.update:
+        db.create_meta_tables()
+        update_db(db)
 
 
 def _parse_args() -> Namespace:
     parser = ArgumentParser(prog="serie_a_db", description="Serie A database")
     parser.add_argument(
         "--update",
-        action="extend",
-        type=str,
-        nargs="+",
-        help="Update one or more tables of the database.",
-    )
-    parser.add_argument(
-        "--scratch",
         action="store_true",
         default=False,
-        help="Whether the tables being updated should be erased before updating.",
+        help="Update all the tables in the database.",
     )
     return parser.parse_args()
 
