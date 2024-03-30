@@ -129,6 +129,10 @@ class DefinitionScript(BaseModel):
     def _extract_columns_from_create_statement(
         self, create_statement: str
     ) -> tuple[str]:
+        """Extract the columns from a CREATE TABLE statement.
+
+        It is assumed that each column is defined in a separate line.
+        """
         # Matching anything between the first "(" and the last ")"
         try:
             # mypy does not understand the try-except construct
