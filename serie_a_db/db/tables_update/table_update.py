@@ -3,9 +3,9 @@
 from abc import ABC, abstractmethod
 from typing import NamedTuple, Self
 
-from serie_a_db.db_setup import Db
+from serie_a_db.db.db import Db
+from serie_a_db.db.tables_update.definitions_script_reading import DefinitionScript
 from serie_a_db.exceptions import IncompatibleDataError
-from serie_a_db.update.definitions_script_reading import DefinitionScript
 from serie_a_db.utils import from_camel_to_snake_case, now
 
 

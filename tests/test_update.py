@@ -3,8 +3,8 @@ from typing import NamedTuple
 
 import pytest
 
-from serie_a_db.db_setup import Db
-from serie_a_db.update.table_update import DbTable
+from serie_a_db.db.db import Db
+from serie_a_db.db.tables_update.table_update import DbTable
 
 
 def test_table_name():
@@ -42,8 +42,6 @@ class TestDataCompatibilityCheck:
 def test_update_is_logged_in_meta_table(db: Db, freeze_time):
     """Table updates are logged in a dedicated table."""
     # Arrange
-    db.create_meta_tables()
-
     dummy = namedtuple("Dummy", ["dummy_id", "dummy_name"])
     records = [dummy(1, "dummy"), dummy(2, "dummy")]
     script = """CREATE TABLE IF NOT EXISTS dm_dummy (
