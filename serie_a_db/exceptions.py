@@ -80,5 +80,5 @@ class BoundaryNotFoundError(TableUpdateError):
     """The boundary is not found in the dictionary."""
 
     def __init__(self, table_name: str, boundary: str, boundaries: dict):
-        message = f"boundary '{boundary}' not found in the boundaries dictionary: {boundaries}."
+        message = f"boundary '{boundary}' not found in the boundaries: {boundaries}."
         super().__init__(table_name, message)

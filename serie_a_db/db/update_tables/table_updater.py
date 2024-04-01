@@ -82,7 +82,7 @@ class DbTable(ABC):
     def mock_extract_response(self, data: list[NamedTuple]) -> None:
         """Replace the extract_data method with a fixed data set."""
         # mypy does not like this, but for testing purposes it is fine
-        self.extract_data = lambda *args, **kwargs: data  # type: ignore
+        self.extract_data = lambda *args, **kwargs: data  # type: ignore # noqa
 
     @classmethod
     def error_if_data_incompatible(
@@ -97,9 +97,9 @@ class DbTable(ABC):
         # Assuming that if the first and last records are valid, the rest
         # of the records are valid as well
         if data[0]._fields != columns:
-            raise IncompatibleDataError(cls.table_name, columns, data[0]._fields)
+            raise IncompatibleDataError(cls.table_name(), columns, data[0]._fields)
         if data[-1]._fields != columns:
-            raise IncompatibleDataError(cls.table_name, columns, data[-1]._fields)
+            raise IncompatibleDataError(cls.table_name(), columns, data[-1]._fields)
 
     def populate_staging_table(self, data: list[NamedTuple]) -> None:
         """Populate the staging table."""
