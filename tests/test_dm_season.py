@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
 from serie_a_db.db.db import Db
-from serie_a_db.db.tables_update.tables.dm_season import DmSeason, Season
+from serie_a_db.db.update_tables.tables.dm_season import DmSeason, Season
 
 
 def test_dm_season_update(db: Db):

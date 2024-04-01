@@ -4,13 +4,17 @@ from abc import ABC, abstractmethod
 from typing import NamedTuple, Self
 
 from serie_a_db.db.db import Db
-from serie_a_db.db.tables_update.definitions_script_reading import DefinitionScript
+from serie_a_db.db.update_tables.parse_sql_script import DefinitionScript
 from serie_a_db.exceptions import IncompatibleDataError
 from serie_a_db.utils import from_camel_to_snake_case, now
 
 
 class DbTable(ABC):
-    """Generic class for updating a database table."""
+    """Generic class for updating a database table.
+
+    This class implements the orchestration logic to update a database table.
+    The actual data extraction is left to the subclasses.
+    """
 
     def __init__(self, db: Db, script: DefinitionScript) -> None:
         self.db = db
@@ -18,7 +22,7 @@ class DbTable(ABC):
 
     @classmethod
     def table_name(cls) -> str:
-        """Return the name of the table."""
+        """Infer the table name from the class name itself."""
         return from_camel_to_snake_case(cls.__name__)
 
     @classmethod

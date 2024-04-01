@@ -17,7 +17,20 @@ from serie_a_db.utils import split_no_empty, strip_whitespaces_and_newlines
 
 
 class DefinitionScript(BaseModel):
-    """Represent a SQL script for creating an populating a table."""
+    """Represent a SQL script for creating an populating a table.
+
+    A definition script is composed of four parts:
+    1. CREATE statement for the production table
+    1. CREATE statement for the staging table
+    1. INSERT statement for populating the staging table with external data
+    1. INSERT statement for populating the production table with the staging data
+
+    Element 1 is mandatory and needs to be present in the script. Elements 2 and
+    3 are optional and are derived from element 1 if not present. Element 4 is
+    always automatically derived from the other elements.
+
+    This class is used to parse the SQL script and extract the relevant parts.
+    """
 
     script: str
     name: str
@@ -66,6 +79,11 @@ class DefinitionScript(BaseModel):
         """Create a DefinitionScript from a file."""
         return cls(script=cls.read_script_from_file(table_name), name=table_name)
 
+    @classmethod
+    def read_script_from_file(cls, table_name: str) -> str:
+        """Read a SQL script from a file."""
+        return (cls.DEFINITIONS_DIR / f"{table_name}.sql").read_text()
+
     @property
     def create_prod_table(self) -> str:
         """The statement to create the production tables."""
@@ -84,6 +102,14 @@ class DefinitionScript(BaseModel):
         ).replace("IF NOT EXISTS", "")
 
     @property
+    def insert_values_into_staging(self) -> str:
+        """The insert values statement to populate the staging table."""
+        columns_str = ", ".join(self.staging_columns)
+        question_marks = ", ".join("?" for _ in self.staging_columns)
+        return f"""INSERT INTO {self.name}_staging({columns_str})
+        VALUES({question_marks});"""
+
+    @property
     def insert_from_staging_to_prod(self) -> str:
         """The insert statement to add data from the staging to the prod table."""
         statement = self._split_statements()[2]
@@ -100,14 +126,6 @@ class DefinitionScript(BaseModel):
         ON CONFLICT DO UPDATE
         SET {on_str};
         """
-
-    @property
-    def insert_values_into_staging(self) -> str:
-        """The insert values statement to populate the staging table."""
-        columns_str = ", ".join(self.staging_columns)
-        question_marks = ", ".join("?" for _ in self.staging_columns)
-        return f"""INSERT INTO {self.name}_staging({columns_str})
-        VALUES({question_marks});"""
 
     def _split_statements(self) -> tuple[str, str | None, str | None]:
         try:
@@ -157,11 +175,6 @@ class DefinitionScript(BaseModel):
             for col in columns_and_ending_clauses
             if col.upper() not in ("PRIMARY", "CHECK")
         )  # type: ignore # mypy thinks we might have a tuple of str | None
-
-    @classmethod
-    def read_script_from_file(cls, table_name: str) -> str:
-        """Read a SQL script from a file."""
-        return (cls.DEFINITIONS_DIR / f"{table_name}.sql").read_text()
 
     @property
     def file_path(self) -> Path:

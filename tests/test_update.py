@@ -4,7 +4,7 @@ from typing import NamedTuple
 import pytest
 
 from serie_a_db.db.db import Db
-from serie_a_db.db.tables_update.table_update import DbTable
+from serie_a_db.db.update_tables.table_updater import DbTable
 
 
 def test_table_name():

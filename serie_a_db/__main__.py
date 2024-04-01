@@ -2,9 +2,8 @@
 
 from argparse import ArgumentParser, Namespace
 
-from serie_a_db.db.build import create_meta_tables
+from serie_a_db.db.build import create_meta_tables, update_db
 from serie_a_db.db.db import Db
-from serie_a_db.update.db_update import update_db
 
 
 def main() -> None:

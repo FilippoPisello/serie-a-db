@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from serie_a_db.db.tables_update.input_base_model import DbInputBaseModel
+from serie_a_db.db.update_tables.input_base_model import DbInputBaseModel
 
 
 class DummyInput(DbInputBaseModel):

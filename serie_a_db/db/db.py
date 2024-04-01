@@ -1,4 +1,4 @@
-"""Core database functionality."""
+"""Wrapper around sqlite3.db adding some utility methods."""
 
 import sqlite3
 from pathlib import Path

@@ -4,8 +4,8 @@ from typing import NamedTuple
 
 from bs4 import BeautifulSoup, NavigableString
 
-from serie_a_db.db.tables_update.input_base_model import DbInputBaseModel
-from serie_a_db.db.tables_update.table_update import DbTable
+from serie_a_db.db.update_tables.input_base_model import DbInputBaseModel
+from serie_a_db.db.update_tables.table_updater import DbTable
 from serie_a_db.scrape.lega_serie_a_website import SerieAWebsite
 
 
