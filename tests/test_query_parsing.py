@@ -1,7 +1,7 @@
 import pytest
 
 from serie_a_db import DEFINITIONS_DIR
-from serie_a_db.update import DefinitionScript
+from serie_a_db.db.update_tables.parse_sql_script import DefinitionScript
 from tests.test_utils import strings_equivalent
 
 

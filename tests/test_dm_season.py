@@ -1,13 +1,12 @@
 from unittest.mock import Mock
 
-from serie_a_db.db_setup import Db
-from serie_a_db.update.dm_season import DmSeason, Season
+from serie_a_db.db.db import Db
+from serie_a_db.db.update_tables.tables.dm_season import DmSeason, Season
 
 
 def test_dm_season_update(db: Db):
     """Test the update method of DmSeason."""
     # Arrange
-    db.create_meta_tables()
     dm_season = DmSeason.from_definitions(db)
     data = [
         Season(year_start=2023, code_serie_a_api=23, active=1).to_namedtuple(),

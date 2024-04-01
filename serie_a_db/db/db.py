@@ -1,11 +1,11 @@
-"""Core database functionality."""
+"""Wrapper around sqlite3.db adding some utility methods."""
 
 import sqlite3
 from pathlib import Path
 from sqlite3 import Connection, Cursor, connect
 from typing import Self
 
-from serie_a_db import DB_FILE, META_DIR
+from serie_a_db import DB_FILE
 
 
 class Db:
@@ -20,12 +20,6 @@ class Db:
     def in_memory(cls) -> Self:
         """Create a Db instance in memory."""
         return cls(db_path=":memory:")
-
-    def create_meta_tables(self) -> None:
-        """Create the meta tables."""
-        for file in META_DIR.iterdir():
-            self.execute(file.read_text())
-        return self.commit()
 
     def execute(self, statement: str, *args, **kwargs) -> Cursor:
         """Execute a statement."""
