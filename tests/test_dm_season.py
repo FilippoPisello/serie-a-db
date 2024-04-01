@@ -55,7 +55,7 @@ class TestExtractData:
         }
         updater = DmSeason(db=None, script=None)
         updater.SERIE_A_WEBSITE = mock_client
-        data = updater.extract_data()
+        data = updater.extract_data(boundaries={"min_season": 2000})
         assert data == [
             (2023, 157617, 0),
             (2022, 150052, 0),
@@ -88,9 +88,8 @@ class TestExtractData:
         }
         updater = DmSeason(db=None, script=None)
         updater.SERIE_A_WEBSITE = mock_client
-        updater.EARLIEST_SEASON = 2000
 
-        data = updater.extract_data()
+        data = updater.extract_data(boundaries={"min_season": 2000})
 
         assert data == [
             (2000, 150052, 0),

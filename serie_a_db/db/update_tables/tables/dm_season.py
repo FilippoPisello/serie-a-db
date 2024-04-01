@@ -21,15 +21,27 @@ class DmSeason(DbTable):
     """Update the season table."""
 
     SERIE_A_WEBSITE = SerieAWebsite()
-    EARLIEST_SEASON = 2000
 
-    def extract_data(self) -> list[NamedTuple]:
+    def establish_data_retrieval_boundaries(self) -> dict:
+        """Look for data from the active season onwards.
+
+        The active season might become inactive and a new season might start,
+        everything in the past is instead fixed and does not need to be updated.
+        """
+        # Get active season from the database
+        res = self.db.select("SELECT year_start FROM dm_season WHERE active = 1")
+        if res:
+            return {"min_season": res[0][0]}
+        # Never go earlier than 2000
+        return {"min_season": 2000}
+
+    def extract_data(self, boundaries: dict) -> list[NamedTuple]:
         """Extract season data from the web."""
         homepage = self.SERIE_A_WEBSITE.get_homepage()
         seasons = []
         for season_year_start, season_api_code in _find_seasons(homepage):
 
-            if season_year_start < self.EARLIEST_SEASON:
+            if season_year_start < self.get_boundary(boundaries, "min_season"):
                 continue
 
             season_page = self.SERIE_A_WEBSITE.get_season_page(season_api_code)

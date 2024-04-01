@@ -57,12 +57,28 @@ class ColumnsNotFoundError(QueryError):
         super().__init__(message)
 
 
-class IncompatibleDataError(ValueError):
+class TableUpdateError(Exception):
+    """Any error related to the table update."""
+
+    def __init__(self, table_name: str, specific_message: str) -> None:
+        message = f"Error updating table '{table_name}': {specific_message}"
+        super().__init__(message)
+
+
+class IncompatibleDataError(TableUpdateError):
     """The data extracted from the source is incompatible with the table."""
 
-    def __init__(self, expected_columns: tuple, data_columns: tuple):
+    def __init__(self, table_name: str, expected_columns: tuple, data_columns: tuple):
         message = (
-            "Cannot insert data into the staging table. "
+            "cannot insert data into the staging table. "
             f"Expected columns {expected_columns} but got {data_columns}."
         )
-        super().__init__(message)
+        super().__init__(table_name, message)
+
+
+class BoundaryNotFoundError(TableUpdateError):
+    """The boundary is not found in the dictionary."""
+
+    def __init__(self, table_name: str, boundary: str, boundaries: dict):
+        message = f"boundary '{boundary}' not found in the boundaries: {boundaries}."
+        super().__init__(table_name, message)
