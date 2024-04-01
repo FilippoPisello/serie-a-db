@@ -21,6 +21,10 @@ class Db:
         """Create a Db instance in memory."""
         return cls(db_path=":memory:")
 
+    def select(self, statement: str, *args, **kwargs) -> list[tuple] | list:
+        """Return the results of a SELECT statement."""
+        return self.execute(statement, *args, **kwargs).fetchall()
+
     def execute(self, statement: str, *args, **kwargs) -> Cursor:
         """Execute a statement."""
         try:
@@ -40,6 +44,6 @@ class Db:
         """Return the number of rows in the table."""
         return self.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
 
-    def get_all_rows(self, table_name: str) -> list[tuple]:
+    def get_all_rows(self, table_name: str) -> list[tuple] | list:
         """Return all rows from the table."""
         return self.execute(f"SELECT * FROM {table_name}").fetchall()

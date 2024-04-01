@@ -1,11 +1,11 @@
 """Logic to update a single database table."""
 
 from abc import ABC, abstractmethod
-from typing import NamedTuple, Self
+from typing import Any, NamedTuple, Self
 
 from serie_a_db.db.db import Db
 from serie_a_db.db.update_tables.parse_sql_script import DefinitionScript
-from serie_a_db.exceptions import IncompatibleDataError
+from serie_a_db.exceptions import BoundaryNotFoundError, IncompatibleDataError
 from serie_a_db.utils import from_camel_to_snake_case, now
 
 
@@ -41,7 +41,9 @@ class DbTable(ABC):
         self.db.execute(self.script.create_prod_table)
         self.db.execute(self.script.create_staging_table)
 
-        data = self.extract_data()
+        boundaries = self.establish_data_retrieval_boundaries()
+        data = self.extract_data(boundaries)
+
         self.error_if_data_incompatible(data, tuple(self.script.staging_columns))
         self.populate_staging_table(data)
         self.db.execute(self.script.insert_from_staging_to_prod)
@@ -49,20 +51,42 @@ class DbTable(ABC):
         self.log_update_in_meta_table()
         self.db.commit()
 
+    def establish_data_retrieval_boundaries(self) -> dict:
+        """Get the boundaries for the data extraction.
+
+        Designed to be optionally overridden by subclasses.
+
+        For efficiency reasons, we don't want to re-extract all the data every
+        time we update the table.
+
+        This method returns boundaries that can be taken into account when
+        extracting the data, so that the extraction is limited - or close to -
+        the new data only.
+        """
+        return {}
+
+    @classmethod
+    def get_boundary(cls, boundaries: dict, key: str) -> Any:
+        """Get a boundary from the dictionary, raising an error if not found."""
+        try:
+            return boundaries[key]
+        except KeyError as e:
+            raise BoundaryNotFoundError(cls.table_name(), key, boundaries) from e
+
     # This method can be hidden by a testing helper method, as intended
     # pylint: disable=method-hidden
     @abstractmethod
-    def extract_data(self) -> list[NamedTuple]:
+    def extract_data(self, boundaries: dict) -> list[NamedTuple]:
         """Extract the data from the source."""
 
     def mock_extract_response(self, data: list[NamedTuple]) -> None:
         """Replace the extract_data method with a fixed data set."""
         # mypy does not like this, but for testing purposes it is fine
-        self.extract_data = lambda: data  # type: ignore
+        self.extract_data = lambda *args, **kwargs: data  # type: ignore
 
-    @staticmethod
+    @classmethod
     def error_if_data_incompatible(
-        data: list[NamedTuple], columns: tuple[str, ...]
+        cls, data: list[NamedTuple], columns: tuple[str, ...]
     ) -> None:
         """Check that the data is compatible with the table.
 
@@ -73,9 +97,9 @@ class DbTable(ABC):
         # Assuming that if the first and last records are valid, the rest
         # of the records are valid as well
         if data[0]._fields != columns:
-            raise IncompatibleDataError(columns, data[0]._fields)
+            raise IncompatibleDataError(cls.table_name, columns, data[0]._fields)
         if data[-1]._fields != columns:
-            raise IncompatibleDataError(columns, data[-1]._fields)
+            raise IncompatibleDataError(cls.table_name, columns, data[-1]._fields)
 
     def populate_staging_table(self, data: list[NamedTuple]) -> None:
         """Populate the staging table."""

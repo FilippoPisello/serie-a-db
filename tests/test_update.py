@@ -5,6 +5,7 @@ import pytest
 
 from serie_a_db.db.db import Db
 from serie_a_db.db.update_tables.table_updater import DbTable
+from serie_a_db.exceptions import TableUpdateError
 
 
 def test_table_name():
@@ -21,22 +22,22 @@ def test_table_name():
     assert DmMatchDay.table_name() == "dm_match_day"
 
 
-class TestDataCompatibilityCheck:
-    """Before-insert check for data compatibility with the table."""
+def test_error_if_data_incompatible(db):
+    # Arrange
+    dummy = namedtuple("Season", ["season_id"])
+    records = [dummy(1), dummy(2)]
+    script_with_different_column = """CREATE TABLE IF NOT EXISTS dm_dummy (
+            dummy_name INTEGER PRIMARY KEY
+    );"""
 
-    def test_error_if_data_incompatible(self):
-        season = namedtuple("Season", ["season_id", "season_name"])
-        data = [season(2021, "2021/22")]
-        # The columns are in the wrong order
-        columns = ("season_name", "season_id")
-        with pytest.raises(ValueError):
-            DbTable.error_if_data_incompatible(data, columns)
+    class DmDummy(DbTable):
 
-    def test_no_error_if_data_compatible(self):
-        season = namedtuple("Season", ["season_id", "season_name"])
-        data = [season(2021, "2021/22")]
-        columns = ("season_id", "season_name")
-        DbTable.error_if_data_incompatible(data, columns)
+        def extract_data(self, boundaries: dict) -> list[NamedTuple]:
+            return records
+
+    # Act & Assert
+    with pytest.raises(TableUpdateError):
+        DmDummy.from_string(db, script_with_different_column).update()
 
 
 def test_update_is_logged_in_meta_table(db: Db, freeze_time):
@@ -50,7 +51,8 @@ def test_update_is_logged_in_meta_table(db: Db, freeze_time):
     );"""
 
     class DmDummy(DbTable):
-        def extract_data(self) -> list[NamedTuple]:
+
+        def extract_data(self, boundaries: dict) -> list[NamedTuple]:
             return records
 
     # Act
@@ -60,3 +62,27 @@ def test_update_is_logged_in_meta_table(db: Db, freeze_time):
     assert db.get_all_rows("ft_tables_update") == [
         ("dm_dummy", "2024-01-01 12:00:00", len(records))
     ]
+
+
+def test_boundaries_are_used_in_extract_data(db: Db):
+    """Boundaries are used in the data extraction."""
+    # Arrange
+    dummy = namedtuple("Dummy", ["dummy_id"])
+    records = [dummy(1), dummy(2), dummy(3)]
+    script = """CREATE TABLE IF NOT EXISTS dm_dummy (
+            dummy_id INTEGER PRIMARY KEY
+    );"""
+
+    class DmDummy(DbTable):
+
+        def establish_data_retrieval_boundaries(self) -> dict:
+            return {"data": records}
+
+        def extract_data(self, boundaries: dict) -> list[NamedTuple]:
+            return boundaries["data"]
+
+    # Act
+    DmDummy.from_string(db, script).update()
+
+    # Assert
+    assert db.get_all_rows("dm_dummy") == [(1,), (2,), (3,)]
