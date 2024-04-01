@@ -49,9 +49,16 @@ class DbTable(ABC):
         self.log_update_in_meta_table()
         self.db.commit()
 
+    # This method can be hidden by a testing helper method, as intended
+    # pylint: disable=method-hidden
     @abstractmethod
     def extract_data(self) -> list[NamedTuple]:
         """Extract the data from the source."""
+
+    def mock_extract_response(self, data: list[NamedTuple]) -> None:
+        """Replace the extract_data method with a fixed data set."""
+        # mypy does not like this, but for testing purposes it is fine
+        self.extract_data = lambda: data  # type: ignore
 
     @staticmethod
     def error_if_data_incompatible(
@@ -85,8 +92,3 @@ class DbTable(ABC):
             """,
             (self.table_name(), now().strftime("%Y-%m-%d %H:%M:%S"), n_rows),
         )
-
-    def mock_extract_response(self, data: list[NamedTuple]) -> None:
-        """Replace the extract_data method with a fixed data set."""
-        # mypy does not like this, but for testing purposes it is fine
-        self.extract_data = lambda: data  # type: ignore
