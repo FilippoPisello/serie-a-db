@@ -2,6 +2,4 @@
 
 from serie_a_db.db.update_tables.tables.dm_season import DmSeason
 
-TABLES = [
-    DmSeason,
-]
+TABLES = (DmSeason,)

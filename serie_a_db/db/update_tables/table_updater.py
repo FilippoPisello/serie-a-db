@@ -16,6 +16,8 @@ class DbTable(ABC):
     The actual data extraction is left to the subclasses.
     """
 
+    DEPENDS_ON: tuple | tuple[Self] = ()
+
     def __init__(self, db: Db, script: DefinitionScript) -> None:
         self.db = db
         self.script = script
@@ -37,6 +39,12 @@ class DbTable(ABC):
         return cls(db, DefinitionScript(script=script, name=cls.table_name()))
 
     def update(self) -> None:
+        """Update the table with the given data."""
+        for dependency in self.DEPENDS_ON:
+            dependency.update()
+        self._update_table()
+
+    def _update_table(self) -> None:
         """Update the table with the given data."""
         self.db.execute(self.script.create_prod_table)
         self.db.execute(self.script.create_staging_table)
