@@ -2,7 +2,7 @@
 
 from argparse import ArgumentParser, Namespace
 
-from serie_a_db.db.build import create_meta_tables, update_db
+from serie_a_db.db.build import create_meta_tables, instantiate_tables, update_db
 from serie_a_db.db.db import Db
 
 
@@ -14,7 +14,8 @@ def main() -> None:
 
     if args.update:
         create_meta_tables(db)
-        update_db(db)
+        tables = instantiate_tables(db)
+        update_db(db, tables)
 
 
 def _parse_args() -> Namespace:

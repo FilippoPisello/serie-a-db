@@ -1,6 +1,7 @@
 """Wrapper around sqlite3.db adding some utility methods."""
 
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 from sqlite3 import Connection, Cursor, connect
 from typing import Self
@@ -47,3 +48,16 @@ class Db:
     def get_all_rows(self, table_name: str) -> list[tuple] | list:
         """Return all rows from the table."""
         return self.execute(f"SELECT * FROM {table_name}").fetchall()
+
+    def last_updated(self, table_name: str) -> None | datetime:
+        """Return the timestamp for the last update of this table."""
+        try:
+            datetime_str = self.execute(
+                f"""SELECT datetime_updated FROM ft_tables_update
+                WHERE table_name = '{table_name}'
+                ORDER BY datetime_updated DESC
+                LIMIT 1"""
+            ).fetchone()[0]
+        except IndexError:
+            return None
+        return datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S.%f")

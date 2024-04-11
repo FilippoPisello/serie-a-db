@@ -21,6 +21,7 @@ class DbTable(ABC):
     def __init__(self, db: Db, script: DefinitionScript) -> None:
         self.db = db
         self.script = script
+        self.updated = False
 
     @classmethod
     def table_name(cls) -> str:
@@ -40,12 +41,8 @@ class DbTable(ABC):
 
     def update(self) -> None:
         """Update the table with the given data."""
-        for dependency in self.DEPENDS_ON:
-            dependency.update()
-        self._update_table()
-
-    def _update_table(self) -> None:
-        """Update the table with the given data."""
+        if self.updated:
+            return
         self.db.execute(self.script.create_prod_table)
         self.db.execute(self.script.create_staging_table)
 
@@ -58,6 +55,7 @@ class DbTable(ABC):
 
         self.log_update_in_meta_table()
         self.db.commit()
+        self.updated = True
 
     def establish_data_retrieval_boundaries(self) -> dict:
         """Get the boundaries for the data extraction.
@@ -122,5 +120,9 @@ class DbTable(ABC):
             INSERT INTO ft_tables_update(table_name, datetime_updated, rows_number)
             VALUES(?, ?, ?);
             """,
-            (self.table_name(), now().strftime("%Y-%m-%d %H:%M:%S"), n_rows),
+            (
+                self.table_name(),
+                now().isoformat(sep=" ", timespec="milliseconds"),
+                n_rows,
+            ),
         )

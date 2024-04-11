@@ -13,7 +13,30 @@ def create_meta_tables(db: Db) -> None:
     return db.commit()
 
 
-def update_db(db: Db, tables: tuple[type[DbTable]] = TABLES) -> None:
+def instantiate_tables(
+    db: Db, tables: tuple[type[DbTable], ...] = TABLES
+) -> tuple[DbTable, ...]:
+    """Instantiate the DbTable objects."""
+    return tuple(table.from_definitions(db) for table in tables)
+
+
+def update_db(db: Db, tables: tuple[DbTable, ...]) -> None:
     """Update all the tables in the database."""
     for table in tables:
-        table.from_definitions(db).update()
+        _update_table_and_upstream_dependencies(db, table, tables)
+
+
+def _update_table_and_upstream_dependencies(
+    db: Db, table: DbTable, all_tables: tuple[DbTable, ...]
+) -> None:
+    """Update the passed table and its upstream dependencies.
+
+    Dependencies are updated first.
+    """
+    for dependency in table.DEPENDS_ON:
+        # Expect to find a single item
+        instantiated_dependency = [
+            tbl for tbl in all_tables if isinstance(tbl, dependency)
+        ][0]
+        _update_table_and_upstream_dependencies(db, instantiated_dependency, all_tables)
+    table.update()
