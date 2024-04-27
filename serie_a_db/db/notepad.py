@@ -3,6 +3,7 @@ from typing import Callable, NamedTuple, Self
 
 from serie_a_db import DEFINITIONS_DIR, context
 from serie_a_db.db.db import Db
+from serie_a_db.db.update_tables import TABLES
 from serie_a_db.db.update_tables.parse_sql_script import (
     depends_on,
     extract_columns_from_create_statement,
@@ -39,9 +40,7 @@ class CoreTable:
 
     @property
     def depends_on(self) -> set[str]:
-        from serie_a_db.db.update_tables import TABLES_DICT
-
-        all_tables = TABLES_DICT.keys()
+        all_tables = TABLES.keys()
         return depends_on(self.statement_populate_prod, all_tables) - {self.name}
 
     def update(self, db: Db) -> None:

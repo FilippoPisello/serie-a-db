@@ -1,21 +1,26 @@
 from unittest.mock import Mock
 
 from serie_a_db.db.db import Db
-from serie_a_db.db.update_tables.tables.dm_season import DmSeason, Season
+from serie_a_db.db.update_tables import CoreTable, StagingTable
+from serie_a_db.db.update_tables.tables.dm_season import (
+    Season,
+    scrape_data_from_the_web,
+)
 
 
 def test_dm_season_update(db: Db):
     """Test the update method of DmSeason."""
     # Arrange
-    dm_season = DmSeason.from_definitions(db)
+    dm_season = CoreTable.from_file("dm_season")
     data = [
         Season(year_start=2023, code_serie_a_api=23, active=1).to_namedtuple(),
         Season(year_start=2022, code_serie_a_api=22, active=0).to_namedtuple(),
     ]
-    dm_season.mock_extract_response(data)
+    dm_staging = StagingTable.from_file("dm_season_staging", lambda: data)
 
     # Act
-    dm_season.update()
+    dm_staging.update(db)
+    dm_season.update(db)
 
     # Assert
     assert db.count_rows("dm_season") == len(data)
@@ -53,9 +58,9 @@ class TestExtractData:
                 },
             ],
         }
-        updater = DmSeason(db=None, script=None)
-        updater.SERIE_A_WEBSITE = mock_client
-        data = updater.extract_data(boundaries={"min_season": 2000})
+
+        data = scrape_data_from_the_web(mock_client, min_season=2000)
+
         assert data == [
             (2023, 157617, 0),
             (2022, 150052, 0),
@@ -86,10 +91,8 @@ class TestExtractData:
                 },
             ],
         }
-        updater = DmSeason(db=None, script=None)
-        updater.SERIE_A_WEBSITE = mock_client
 
-        data = updater.extract_data(boundaries={"min_season": 2000})
+        data = scrape_data_from_the_web(mock_client, min_season=2000)
 
         assert data == [
             (2000, 150052, 0),

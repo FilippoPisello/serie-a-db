@@ -1,317 +1,227 @@
 import pytest
 
-from serie_a_db import DEFINITIONS_DIR
-from serie_a_db.db.update_tables.parse_sql_script import DefinitionScript
+from serie_a_db.db.update_tables.parse_sql_script import (
+    depends_on,
+    extract_columns_from_create_statement,
+    infer_populate_staging_statement,
+    split_statements,
+    validate_create_prod_statement,
+    validate_create_staging_statement,
+    validate_populate_prod_statement,
+)
+from serie_a_db.exceptions import InvalidStatementError, NumberOfStatementsError
 from tests.test_utils import strings_equivalent
 
 
-def test_queries_in_definitions_respect_the_standard_format():
-    """All queries in the definitions directory respect the standard format."""
-    for file in DEFINITIONS_DIR.iterdir():
-        if file.suffix == ".sql":
-            DefinitionScript.from_definitions(file.stem)
+class TestSplitStatements:
 
-
-class TestSingleStatement:
-    """Case when there is only one statement in the file.
-
-    This assumes that there is no difference between the staging and the prod
-    table, thus both the staging table and the statement to insert data from
-    the staging to the prod table can be derived from the prod table itself.
-    """
-
-    def test_if_expected_creation_statement_missing_then_error(self):
-        script = "SELECT * FROM table"
-        with pytest.raises(ValueError):
-            DefinitionScript(script=script, name="dm_table")
-
-    def test_prod_statement_is_statement_itself(self):
-        script = """CREATE TABLE IF NOT EXISTS dm_table (
-            note
-        );"""
-        assert (
-            DefinitionScript(script=script, name="dm_table").create_prod_table == script
-        )
-
-    def test_staging_statement_is_derived_from_prod_statement(self):
-        script = """CREATE TABLE IF NOT EXISTS dm_table (
-            note
-        );"""
-        expected = """CREATE TABLE dm_table_staging (
-            note
-        );"""
-        assert strings_equivalent(
-            DefinitionScript(script=script, name="dm_table").create_staging_table,
-            expected,
-        )
-
+    @staticmethod
     @pytest.mark.parametrize(
-        ("prod_script", "expected"),
+        ("script", "num_expected"),
         (
-            (  # One column
-                """CREATE TABLE IF NOT EXISTS dm_table (
-                    note
-                );""",
-                """INSERT INTO dm_table
-                SELECT note FROM dm_table_staging
-                WHERE true -- Disambiguates the following ON from potential JOIN ON
-                ON CONFLICT DO UPDATE
-                SET note = excluded.note;
-                """,
-            ),
-            (  # Multiple columns
-                """CREATE TABLE IF NOT EXISTS dm_table (
-                    note,
-                    date
-                );""",
-                """INSERT INTO dm_table
-                SELECT note, date FROM dm_table_staging
-                WHERE true -- Disambiguates the following ON from potential JOIN ON
-                ON CONFLICT DO UPDATE
-                SET note = excluded.note,
-                    date = excluded.date;
-                """,
-            ),
+            ("SELECT * FROM my_table;", 2),
+            ("SELECT * FROM my_table; SELECT * FROM my_table;", 3),
         ),
     )
-    def test_insert_statement_is_derived_from_prod_statement(
-        self, prod_script, expected
-    ):
-        definition_script = DefinitionScript(script=prod_script, name="dm_table")
-        assert strings_equivalent(
-            definition_script.insert_from_staging_to_prod,
-            expected,
-        )
+    def test_error_fewer_statements_than_expected(script, num_expected):
+        with pytest.raises(NumberOfStatementsError):
+            split_statements(script, num_expected)
 
+    @staticmethod
     @pytest.mark.parametrize(
-        ("prod_script", "expected"),
+        ("script", "num_expected"),
         (
-            (  # One column
-                """CREATE TABLE IF NOT EXISTS dm_table (
-                    note
-                );""",
-                """INSERT INTO dm_table_staging(note)
-                VALUES(?);""",
+            (
+                "SELECT * FROM my_table; SELECT * FROM my_table; SELECT * FROM my_table;",
+                2,
             ),
-            (  # Multiple columns
-                """CREATE TABLE IF NOT EXISTS dm_table (
-                    note,
-                    date
-                );""",
-                """INSERT INTO dm_table_staging(note, date)
-                VALUES(?, ?);""",
-            ),
+            ("SELECT * FROM my_table;SELECT * FROM my_table;", 1),
         ),
     )
-    def test_insert_values_into_staging_is_derived_from_prod_statement(
-        self, prod_script, expected
-    ):
-        definition_script = DefinitionScript(script=prod_script, name="dm_table")
-        assert strings_equivalent(
-            definition_script.insert_values_into_staging,
-            expected,
-        )
+    def test_error_more_statements_than_expected(script, num_expected):
+        with pytest.raises(NumberOfStatementsError):
+            split_statements(script, num_expected)
 
+    @staticmethod
+    def test_correct_number_of_statements():
+        script = "SELECT * FROM my_table; CREATE TABLE my_table;"
+
+        actual = split_statements(script, 2)
+
+        assert actual == ("SELECT * FROM my_table", "CREATE TABLE my_table")
+
+
+class TestValidationStatementDefineProd:
+
+    @staticmethod
     @pytest.mark.parametrize(
-        ("prod_script", "expected_columns"),
+        "script",
         (
-            (  # One column
-                """CREATE TABLE IF NOT EXISTS dm_table (
+            "SELECT * FROM my_table;",
+            "CREATE TABLE my_table;",
+            "INSERT INTO my_table SELECT * FROM my_table;",
+        ),
+    )
+    def test_invalid_create_prod_statement(script):
+        with pytest.raises(InvalidStatementError):
+            validate_create_prod_statement(script, "my_table")
+
+    def test_valid_create_prod_statement(self):
+        script = """CREATE TABLE IF NOT EXISTS my_table (
+            my_column VARCHAR
+            );"""
+        actual = validate_create_prod_statement(script, "my_table")
+        assert actual == script
+
+
+class TestValidationStatementPopulateProd:
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "script",
+        (
+            "SELECT * FROM my_table;",
+            "CREATE TABLE my_table;",
+            "CREATE TABLE IF NOT EXISTS my_table;",
+        ),
+    )
+    def test_invalid_populate_prod_statement(script):
+        with pytest.raises(InvalidStatementError):
+            validate_populate_prod_statement(script, "my_table")
+
+
+class TestValidationStatementDefineStaging:
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "script",
+        (
+            "SELECT * FROM my_table;",
+            "CREATE TABLE IF NOT EXISTS my_table;",
+            "INSERT INTO my_table SELECT * FROM my_table;",
+        ),
+    )
+    def test_invalid_create_staging_statement(script):
+        with pytest.raises(InvalidStatementError):
+            validate_create_staging_statement(script, "my_table")
+
+    def test_valid_create_staging_statement(self):
+        script = """CREATE TABLE my_table (
+            my_column VARCHAR
+            );"""
+        actual = validate_create_staging_statement(script, "my_table")
+        assert actual == script
+
+
+class TestDependenciesDetection:
+
+    TABLES = {"my_table", "other_table"}
+
+    def test_depends_only_on_self(self):
+        script = """INSERT INTO my_table SELECT 5 AS my_column;"""
+        assert depends_on(script, self.TABLES) == {"my_table"}
+
+    def test_dependency_on_from_clause(self):
+        script = """INSERT INTO my_table SELECT * FROM other_table;"""
+        assert depends_on(script, self.TABLES) == {
+            "my_table",
+            "other_table",
+        }
+
+    def test_dependency_on_join_clause(self):
+        script = """INSERT INTO my_table SELECT * FROM my_table JOIN other_table;"""
+        assert depends_on(script, self.TABLES) == {
+            "my_table",
+            "other_table",
+        }
+
+    def test_with_table_is_ignored(self):
+        script = """WITH my_cte AS (SELECT * FROM other_table)
+        INSERT INTO my_table SELECT * FROM my_cte;"""
+        assert depends_on(script, self.TABLES) == {"my_table", "other_table"}
+
+
+@pytest.mark.parametrize(
+    ("statement", "expected_columns"),
+    (
+        (  # One column
+            """CREATE TABLE IF NOT EXISTS dm_table (
                     note
                 );""",
-                ("note",),
-            ),
-            (  # One column with CHECK clause containing a comma
-                """CREATE TABLE IF NOT EXISTS dm_table (
+            ("note",),
+        ),
+        (  # One column with CHECK clause containing a comma
+            """CREATE TABLE IF NOT EXISTS dm_table (
                     note CHECK (note IN ('a', 'b'))
                 );""",
-                ("note",),
-            ),
-            (  # Multiple columns
-                """CREATE TABLE IF NOT EXISTS dm_table (
+            ("note",),
+        ),
+        (  # Multiple columns
+            """CREATE TABLE IF NOT EXISTS dm_table (
                     note,
                     date
                 );""",
-                ("note", "date"),
-            ),
-            (  # Multiple columns with first column having a CHECK clause
-                """CREATE TABLE IF NOT EXISTS dm_table (
+            ("note", "date"),
+        ),
+        (  # Multiple columns with first column having a CHECK clause
+            """CREATE TABLE IF NOT EXISTS dm_table (
                     note CHECK (note IN ('a', 'b')),
                     date
                 );""",
-                ("note", "date"),
-            ),
-            (  # Multiple columns with second column having a CHECK clause
-                """CREATE TABLE IF NOT EXISTS dm_table (
+            ("note", "date"),
+        ),
+        (  # Multiple columns with second column having a CHECK clause
+            """CREATE TABLE IF NOT EXISTS dm_table (
                     note,
                     date CHECK (date IN ('a', 'b'))
                 );""",
-                ("note", "date"),
-            ),
-            (  # Multiple columns ending with a CHECK clause
-                """CREATE TABLE IF NOT EXISTS dm_table (
+            ("note", "date"),
+        ),
+        (  # Multiple columns ending with a CHECK clause
+            """CREATE TABLE IF NOT EXISTS dm_table (
                     note,
                     date,
                     CHECK (note IN ('a', 'b'))
                 );""",
-                ("note", "date"),
-            ),
-            (  # Multiple columns ending with a PRIMARY KEY clause
-                """CREATE TABLE IF NOT EXISTS dm_table (
+            ("note", "date"),
+        ),
+        (  # Multiple columns ending with a PRIMARY KEY clause
+            """CREATE TABLE IF NOT EXISTS dm_table (
                     note,
                     date,
                     PRIMARY KEY (note)
                 );""",
-                ("note", "date"),
-            ),
+            ("note", "date"),
         ),
-    )
-    def test_prod_and_staging_columns_are_same_and_derived_from_prod_statement(
-        self, prod_script, expected_columns
-    ):
-        definition_script = DefinitionScript(script=prod_script, name="dm_table")
-
-        assert definition_script.prod_columns == definition_script.staging_columns
-        assert definition_script.staging_columns == expected_columns
+    ),
+)
+def test_columns_inference(statement, expected_columns):
+    columns = extract_columns_from_create_statement(statement)
+    assert columns == expected_columns
 
 
-class TestMoreThanOneStatement:
-    """Case when there are more than one statements in the file.
-
-    In this case, there must be at least three queries: one for the staging
-    table, one for the prod table and one for the insert statement.
-
-    The "at least" derives from the fact that the insert statement can be
-    broken down into multiple queries.
-    """
-
-    def test_if_staging_and_prod_statement_are_swapped_then_error(self):
-        """The prod table must have the IF NOT EXISTS clause."""
-        script = """
-        CREATE TABLE IF NOT EXISTS dm_table_staging (
-            note
-        );
-
-        CREATE TABLE dm_table (
-            note
-        );
-
-        INSERT INTO dm_table
-        SELECT note FROM dm_table_staging
-        ON CONFLICT DO UPDATE
-        SET note = excluded.note;
-        """
-        with pytest.raises(ValueError):
-            DefinitionScript(script=script, name="dm_table")
-
-    def test_if_two_queries_then_error(self):
-        script = """
-        CREATE TABLE IF NOT EXISTS dm_table_staging (
-            note
-        );
-
-        CREATE TABLE IF NOT EXISTS dm_table (
-            note
-        );
-        """
-        with pytest.raises(ValueError):
-            DefinitionScript(script=script, name="dm_table")
-
-    def test_if_three_queries_but_no_insert_then_error(self):
-        script = """
-        CREATE TABLE IF NOT EXISTS dm_table (
-            note
-        );
-
-        CREATE TABLE dm_table_staging (
-            note
-        );
-
-        CREATE TABLE IF NOT EXISTS dm_table_2 (
-            note
-        );
-        """
-        with pytest.raises(ValueError) as exc_info:
-            DefinitionScript(script=script, name="dm_table")
-
-        assert "none of them is an INSERT statement." in str(exc_info.value)
-
-    def test_if_three_queries_as_expected_then_no_error(self):
-        script = """
-        CREATE TABLE IF NOT EXISTS dm_table (
-            note
-        );
-
-        CREATE TABLE dm_table_staging (
-            a_note
-        );
-
-        INSERT INTO dm_table
-        SELECT a_note FROM dm_table_staging
-        ON CONFLICT DO UPDATE
-        SET note = excluded.a_note;
-        """
-        assert strings_equivalent(
-            DefinitionScript(script=script, name="dm_table").create_prod_table,
-            """CREATE TABLE IF NOT EXISTS dm_table (
-                note
-            );""",
-        )
-        assert strings_equivalent(
-            DefinitionScript(script=script, name="dm_table").create_staging_table,
+@pytest.mark.parametrize(
+    ("staging_statement", "expected"),
+    (
+        (  # One column
             """CREATE TABLE dm_table_staging (
-            a_note
+                a_note
             );""",
-        )
-        assert strings_equivalent(
-            DefinitionScript(
-                script=script, name="dm_table"
-            ).insert_from_staging_to_prod,
-            """
-            INSERT INTO dm_table
-            SELECT a_note FROM dm_table_staging
-            ON CONFLICT DO UPDATE
-            SET note = excluded.a_note;
-            """,
-        )
-
-    @pytest.mark.parametrize(
-        ("staging_statement", "expected"),
-        (
-            (  # One column
-                """CREATE TABLE dm_table_staging (
-                    a_note
-                );""",
-                """INSERT INTO dm_table_staging(a_note)
-                VALUES(?);""",
-            ),
-            (  # Multiple columns
-                """CREATE TABLE dm_table_staging (
-                a_note,
-                a_date
-                );""",
-                """INSERT INTO dm_table_staging(a_note, a_date)
-                VALUES(?, ?);""",
-            ),
+            """INSERT INTO dm_table_staging(a_note)
+            VALUES(?);""",
         ),
-    )
-    def test_insert_values_into_staging_is_derived_from_staging_statement(
-        self, staging_statement, expected
-    ):
-        script = f"""
-        CREATE TABLE IF NOT EXISTS dm_table (
-            note
-        );
-
-        {staging_statement}
-
-        INSERT INTO dm_table
-        SELECT a_note FROM dm_table_staging
-        ON CONFLICT DO UPDATE
-        SET note = excluded.a_note;
-        """
-        definition_script = DefinitionScript(script=script, name="dm_table")
-        assert strings_equivalent(
-            definition_script.insert_values_into_staging,
-            expected,
-        )
+        (  # Multiple columns
+            """CREATE TABLE dm_table_staging (
+            a_note,
+            a_date
+            );""",
+            """INSERT INTO dm_table_staging(a_note, a_date)
+            VALUES(?, ?);""",
+        ),
+    ),
+)
+def test_insert_values_into_staging_is_derived_from_staging_statement(
+    staging_statement, expected
+):
+    actual = infer_populate_staging_statement(staging_statement, "dm_table_staging")
+    assert strings_equivalent(actual, expected)

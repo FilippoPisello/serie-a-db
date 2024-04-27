@@ -4,8 +4,8 @@ from typing import NamedTuple
 
 from bs4 import BeautifulSoup, NavigableString
 
+from serie_a_db.db.db import Db
 from serie_a_db.db.update_tables.input_base_model import DbInputBaseModel
-from serie_a_db.db.update_tables.table_updater import DbTable
 from serie_a_db.scrape.lega_serie_a_website import SerieAWebsite
 
 
@@ -17,42 +17,56 @@ class Season(DbInputBaseModel):
     active: int
 
 
-class DmSeason(DbTable):
-    """Update the season table."""
+def scrape_dm_season_data(
+    db: Db | None = None,
+    serie_a_website_client: SerieAWebsite | None = None,
+) -> list[NamedTuple]:
+    """Extract season data."""
+    # Facilitate replacement with mocks for testing
+    if db is None:
+        db = Db()
+    if serie_a_website_client is None:
+        serie_a_website_client = SerieAWebsite()
 
-    SERIE_A_WEBSITE = SerieAWebsite()
+    min_season = establish_earliest_season_to_look_for(db)
+    return scrape_data_from_the_web(serie_a_website_client, min_season)
 
-    def establish_data_retrieval_boundaries(self) -> dict:
-        """Look for data from the active season onwards.
 
-        The active season might become inactive and a new season might start,
-        everything in the past is instead fixed and does not need to be updated.
-        """
-        # Get active season from the database
-        res = self.db.select("SELECT year_start FROM dm_season WHERE active = 1")
-        if res:
-            return {"min_season": res[0][0]}
-        # Never go earlier than 2000
-        return {"min_season": 2000}
+def establish_earliest_season_to_look_for(db: Db) -> int:
+    """Look for data from the active season onwards.
 
-    def extract_data(self, boundaries: dict) -> list[NamedTuple]:
-        """Extract season data from the web."""
-        homepage = self.SERIE_A_WEBSITE.get_homepage()
-        seasons = []
-        for season_year_start, season_api_code in _find_seasons(homepage):
+    The active season might become inactive and a new season might start,
+    everything in the past is instead fixed and does not need to be updated.
+    """
+    # Get active season from the database
+    res = db.select("SELECT year_start FROM dm_season WHERE active = 1")
+    if res:
+        return res[0][0]
+    # Never go earlier than 2000
+    return 2000
 
-            if season_year_start < self.get_boundary(boundaries, "min_season"):
-                continue
 
-            season_page = self.SERIE_A_WEBSITE.get_season_page(season_api_code)
-            season = Season(
-                year_start=season_year_start,
-                code_serie_a_api=season_api_code,
-                active=_find_is_active_season(season_page),
-            )
-            seasons.append(season.to_namedtuple())
+def scrape_data_from_the_web(
+    serie_a_website_client: SerieAWebsite,
+    min_season: int,
+) -> list[NamedTuple]:
+    """Extract season data from the web."""
+    homepage = serie_a_website_client.get_homepage()
+    seasons = []
+    for season_year_start, season_api_code in _find_seasons(homepage):
 
-        return seasons
+        if season_year_start < min_season:
+            continue
+
+        season_page = serie_a_website_client.get_season_page(season_api_code)
+        season = Season(
+            year_start=season_year_start,
+            code_serie_a_api=season_api_code,
+            active=_find_is_active_season(season_page),
+        )
+        seasons.append(season.to_namedtuple())
+
+    return seasons
 
 
 def _find_seasons(homepage: str) -> list[tuple[int, int]]:

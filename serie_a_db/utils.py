@@ -12,7 +12,9 @@ def strip_whitespaces_and_newlines(string: str) -> str:
 def split_no_empty(string: str, sep: str, maxplit: int = -1) -> list[str]:
     """Split a string and remove empty strings."""
     return [
-        bit for bit in string.split(sep, maxplit) if strip_whitespaces_and_newlines(bit)
+        bit.strip()
+        for bit in string.split(sep, maxplit)
+        if strip_whitespaces_and_newlines(bit)
     ]
 
 
