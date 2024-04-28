@@ -41,5 +41,5 @@ def test_update_is_logged_in_meta_table(db: Db, freeze_time):
 
     # Assert
     assert db.get_all_rows("ft_tables_update") == [
-        ("dm_dummy", "2024-01-01 12:00:00", 1)
+        ("dm_dummy", "2024-01-01 12:00:00.000", 1)
     ]

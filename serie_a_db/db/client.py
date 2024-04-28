@@ -72,5 +72,5 @@ class DbMeta:
             INSERT INTO ft_tables_update(table_name, datetime_updated, rows_number)
             VALUES(?, ?, ?);
             """,
-            (table_name, now().strftime("%Y-%m-%d %H:%M:%S"), n_rows),
+            (table_name, now().isoformat(sep=" ", timespec="milliseconds"), n_rows),
         )
