@@ -8,12 +8,6 @@ CREATE TABLE IF NOT EXISTS dm_season (
     CHECK (year_end = year_start + 1)
 );
 
-CREATE TABLE dm_season_staging (
-    year_start INT NOT NULL CHECK (year_start BETWEEN 1980 AND 2050),
-    code_serie_a_api INT NOT NULL,
-    active INT DEFAULT 0 CHECK (active IN (0, 1))
-);
-
 WITH dm_season_enriched AS (
     SELECT
         year_start                          AS year_start,

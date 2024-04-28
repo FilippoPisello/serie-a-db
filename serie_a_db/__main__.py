@@ -2,8 +2,9 @@
 
 from argparse import ArgumentParser, Namespace
 
-from serie_a_db.db.build import create_meta_tables, update_db
-from serie_a_db.db.db import Db
+from serie_a_db.db.client import Db
+from serie_a_db.db.schema import TABLES
+from serie_a_db.db.update import DbUpdater
 
 
 def main() -> None:
@@ -13,8 +14,10 @@ def main() -> None:
     db = Db()
 
     if args.update:
-        create_meta_tables(db)
-        update_db(db)
+        db.meta.create_meta_tables()
+        builder = DbUpdater(db, schema=TABLES)
+        builder.update_all_tables()
+        db.close_connection()
 
 
 def _parse_args() -> Namespace:
