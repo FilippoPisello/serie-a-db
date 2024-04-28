@@ -1,82 +1,146 @@
 from collections import namedtuple
-from datetime import datetime
-from typing import NamedTuple
 
 import pytest
 
-from serie_a_db import utils
-from serie_a_db.db_setup import Db
-from serie_a_db.update.update import DbTable
+from serie_a_db.db.client import Db
+from serie_a_db.db.table import StagingTable, WarehouseTable
+from serie_a_db.db.update import DbUpdater
+from serie_a_db.exceptions import TableUpdateError
+
+DUMMY_INPUT = namedtuple("Season", ["season_id"])
+DUMMY_RECORDS = [DUMMY_INPUT(1), DUMMY_INPUT(2)]
 
 
-def test_table_name():
-    """A DbTable subclass has a table name derived from its class name."""
+def test_error_if_data_being_inserted_does_not_match_table_columns(db):
+    # Arrange
+    script_with_different_column = """CREATE TABLE IF NOT EXISTS dm_dummy (
+            dummy_name INTEGER
+    );"""
 
-    class DmSeason(DbTable):
-        pass
+    table = StagingTable(
+        "dm_dummy", script_with_different_column, lambda: DUMMY_RECORDS
+    )
 
-    assert DmSeason.table_name() == "dm_season"
-
-    class DmMatchDay(DbTable):
-        pass
-
-    assert DmMatchDay.table_name() == "dm_match_day"
-
-
-class TestDataCompatibilityCheck:
-    """Before-insert check for data compatibility with the table."""
-
-    def test_error_if_data_incompatible(self):
-        season = namedtuple("Season", ["season_id", "season_name"])
-        data = [season(2021, "2021/22")]
-        # The columns are in the wrong order
-        columns = ("season_name", "season_id")
-        with pytest.raises(ValueError):
-            DbTable.error_if_data_incompatible(data, columns)
-
-    def test_no_error_if_data_compatible(self):
-        season = namedtuple("Season", ["season_id", "season_name"])
-        data = [season(2021, "2021/22")]
-        columns = ("season_id", "season_name")
-        DbTable.error_if_data_incompatible(data, columns)
-
-
-@pytest.fixture(name="db")
-def in_memory_db():
-    """Provide a Db instance in memory."""
-    db = Db.in_memory()
-    try:
-        yield db
-    finally:
-        db.close_connection()
-
-
-@pytest.fixture()
-def freeze_time():
-    """Freeze time to 2024-01-01 12:00:00."""
-    utils.FREEZE_TIME_TO = datetime(2024, 1, 1, 12, 0, 0)
-    yield
-    utils.FREEZE_TIME_TO = None
+    # Act & Assert
+    with pytest.raises(TableUpdateError):
+        table.update(db)
 
 
 def test_update_is_logged_in_meta_table(db: Db, freeze_time):
     """Table updates are logged in a dedicated table."""
     # Arrange
-    db.create_meta_tables()
-
-    dummy = namedtuple("Dummy", ["dummy_id", "dummy_name"])
-    records = [dummy(1, "dummy"), dummy(2, "dummy")]
-    script = """CREATE TABLE IF NOT EXISTS dm_dummy (
-            dummy_id INTEGER PRIMARY KEY, dummy_name
-    );"""
-
-    class DmDummy(DbTable):
-        def extract_data(self) -> list[NamedTuple]:
-            return records
+    table = WarehouseTable(
+        "dm_dummy",
+        "CREATE TABLE IF NOT EXISTS dm_dummy (dummy_name INTEGER);",
+        "INSERT INTO dm_dummy VALUES (5);",
+    )
 
     # Act
-    DmDummy.from_string(db, script).update()
+    builder = DbUpdater(db, {"dm_dummy": table})
+    builder.update_all_tables()
 
     # Assert
-    result = db.execute("SELECT * FROM ft_tables_update").fetchall()
-    assert result == [("dm_dummy", "2024-01-01 12:00:00", len(records))]
+    assert db.get_all_rows("ft_tables_update") == [
+        ("dm_dummy", "2024-01-01 12:00:00.000", 1)
+    ]
+
+
+def test_db_update_one_table(db):
+    # Arrange
+    table = WarehouseTable(
+        "dm_dummy",
+        "CREATE TABLE IF NOT EXISTS dm_dummy (dummy_name INTEGER);",
+        "INSERT INTO dm_dummy VALUES (5);",
+    )
+
+    # Act
+    builder = DbUpdater(db, {"dm_dummy": table})
+    builder.update_all_tables()
+
+    # Assert
+    assert db.count_rows("dm_dummy") == 1
+    assert [("dm_dummy",)] == db.select("SELECT table_name FROM ft_tables_update")
+
+
+def test_db_update_two_independent_tables(db):
+    # Arrange
+    def_statement = "CREATE TABLE IF NOT EXISTS dm_dummy1 (dummy_name INTEGER);"
+    insert_statement = "INSERT INTO dm_dummy1 VALUES (5);"
+    table1 = WarehouseTable(
+        "dm_dummy1",
+        def_statement,
+        insert_statement,
+    )
+    table2 = WarehouseTable(
+        "dm_dummy2",
+        def_statement.replace("dm_dummy1", "dm_dummy2"),
+        insert_statement.replace("dm_dummy1", "dm_dummy2"),
+    )
+
+    # Act
+    builder = DbUpdater(db, {"dm_dummy1": table1, "dm_dummy2": table2})
+    builder.update_all_tables()
+
+    # Assert
+    assert db.count_rows("dm_dummy1") == db.count_rows("dm_dummy2") == 1
+    assert [("dm_dummy1",), ("dm_dummy2",)] == db.select(
+        "SELECT table_name FROM ft_tables_update"
+    )
+
+
+def test_db_update_dep_lev_1_tables_one_layer(db):
+    """Update order: source -> dependent."""
+    # Arrange
+    base = WarehouseTable(
+        "dm_base",
+        "CREATE TABLE IF NOT EXISTS dm_base (dummy_name INTEGER);",
+        "INSERT INTO dm_base VALUES (5);",
+    )
+    # The second table depends on the first one
+    dependent = WarehouseTable(
+        "dm_dep_lev_1",
+        "CREATE TABLE IF NOT EXISTS dm_dep_lev_1 (dummy_name INTEGER);",
+        "INSERT INTO dm_dep_lev_1 SELECT * FROM dm_base;",
+    )
+
+    # Act
+    builder = DbUpdater(db, {"dm_base": base, "dm_dep_lev_1": dependent})
+    builder.update_all_tables()
+
+    # Assert
+    assert db.meta.last_updated("dm_dep_lev_1") > db.meta.last_updated("dm_base")
+
+
+def test_db_update_dep_lev_1_tables_two_layers(db):
+    """Update order: source -> dependent -> dependent-dependent."""
+    # Arrange
+    base = WarehouseTable(
+        "dm_base",
+        "CREATE TABLE IF NOT EXISTS dm_base (dummy_name INTEGER);",
+        "INSERT INTO dm_base VALUES (5);",
+    )
+    dependent = WarehouseTable(
+        "dm_dep_lev_1",
+        "CREATE TABLE IF NOT EXISTS dm_dep_lev_1 (dummy_name INTEGER);",
+        "INSERT INTO dm_dep_lev_1 SELECT * FROM dm_base;",
+    )
+    dep_lev_2 = WarehouseTable(
+        "dm_dep_lev_2",
+        "CREATE TABLE IF NOT EXISTS dm_dep_lev_2 (dummy_name INTEGER);",
+        "INSERT INTO dm_dep_lev_2 SELECT * FROM dm_dep_lev_1;",
+    )
+
+    # Act
+    builder = DbUpdater(
+        db,
+        {
+            "dm_base": base,
+            "dm_dep_lev_1": dependent,
+            "dm_dep_lev_2": dep_lev_2,
+        },
+    )
+    builder.update_all_tables()
+
+    # Assert
+    assert db.meta.last_updated("dm_dep_lev_1") > db.meta.last_updated("dm_base")
+    assert db.meta.last_updated("dm_dep_lev_2") > db.meta.last_updated("dm_dep_lev_1")
