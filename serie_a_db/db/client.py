@@ -5,7 +5,8 @@ from pathlib import Path
 from sqlite3 import Connection, Cursor, connect
 from typing import Self
 
-from serie_a_db import DB_FILE
+from serie_a_db import DB_FILE, META_DIR
+from serie_a_db.utils import now
 
 
 class Db:
@@ -15,6 +16,7 @@ class Db:
         # MyPy is somehow unaware of the existence of autocommit
         self.db: Connection = connect(db_path, autocommit=False)  # type: ignore
         self.cursor: Cursor = self.db.cursor()
+        self.meta = DbMeta(self)
 
     @classmethod
     def in_memory(cls) -> Self:
@@ -47,3 +49,28 @@ class Db:
     def get_all_rows(self, table_name: str) -> list[tuple] | list:
         """Return all rows from the table."""
         return self.execute(f"SELECT * FROM {table_name}").fetchall()
+
+
+class DbMeta:
+    """Interface to the meta database."""
+
+    def __init__(self, db: Db) -> None:
+        self.db = db
+
+    def create_meta_tables(self) -> None:
+        """Create the meta tables if they don't exist."""
+        for file in META_DIR.iterdir():
+            self.db.execute(file.read_text())
+        return self.db.commit()
+
+    def log_table_update(self, table_name: str) -> None:
+        """Log the update on the ft_tables_update."""
+        n_rows = self.db.count_rows(table_name)
+
+        self.db.execute(
+            """
+            INSERT INTO ft_tables_update(table_name, datetime_updated, rows_number)
+            VALUES(?, ?, ?);
+            """,
+            (table_name, now().strftime("%Y-%m-%d %H:%M:%S"), n_rows),
+        )

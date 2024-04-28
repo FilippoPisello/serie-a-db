@@ -1,17 +1,17 @@
 from unittest.mock import Mock
 
-from serie_a_db.db.db import Db
-from serie_a_db.db.update_tables import CoreTable, StagingTable
-from serie_a_db.db.update_tables.tables.dm_season import (
+from serie_a_db.data_extraction.table_specific_extractors.dm_season import (
     Season,
     scrape_data_from_the_web,
 )
+from serie_a_db.db.client import Db
+from serie_a_db.db.table import StagingTable, WarehouseTable
 
 
 def test_dm_season_update(db: Db):
     """Test the update method of DmSeason."""
     # Arrange
-    dm_season = CoreTable.from_file("dm_season")
+    dm_season = WarehouseTable.from_file("dm_season")
     data = [
         Season(year_start=2023, code_serie_a_api=23, active=1).to_namedtuple(),
         Season(year_start=2022, code_serie_a_api=22, active=0).to_namedtuple(),

@@ -4,9 +4,9 @@ from typing import NamedTuple
 
 from bs4 import BeautifulSoup, NavigableString
 
-from serie_a_db.db.db import Db
-from serie_a_db.db.update_tables.input_base_model import DbInputBaseModel
-from serie_a_db.scrape.lega_serie_a_website import SerieAWebsite
+from serie_a_db.data_extraction.clients.lega_serie_a_website import SerieAWebsite
+from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
+from serie_a_db.db.client import Db
 
 
 class Season(DbInputBaseModel):

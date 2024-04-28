@@ -1,15 +1,15 @@
 import pytest
 
-from serie_a_db.db.update_tables.parse_sql_script import (
+from serie_a_db.exceptions import InvalidStatementError, NumberOfStatementsError
+from serie_a_db.sql_parsing import (
     depends_on,
     extract_columns_from_create_statement,
     infer_populate_staging_statement,
     split_statements,
-    validate_create_prod_statement,
     validate_create_staging_statement,
-    validate_populate_prod_statement,
+    validate_create_statement_wh,
+    validate_populate_statement_wh,
 )
-from serie_a_db.exceptions import InvalidStatementError, NumberOfStatementsError
 from tests.test_utils import strings_equivalent
 
 
@@ -32,7 +32,8 @@ class TestSplitStatements:
         ("script", "num_expected"),
         (
             (
-                "SELECT * FROM my_table; SELECT * FROM my_table; SELECT * FROM my_table;",
+                """SELECT * FROM my_table; SELECT * FROM my_table;
+                SELECT * FROM my_table;""",
                 2,
             ),
             ("SELECT * FROM my_table;SELECT * FROM my_table;", 1),
@@ -64,13 +65,13 @@ class TestValidationStatementDefineProd:
     )
     def test_invalid_create_prod_statement(script):
         with pytest.raises(InvalidStatementError):
-            validate_create_prod_statement(script, "my_table")
+            validate_create_statement_wh(script, "my_table")
 
     def test_valid_create_prod_statement(self):
         script = """CREATE TABLE IF NOT EXISTS my_table (
             my_column VARCHAR
             );"""
-        actual = validate_create_prod_statement(script, "my_table")
+        actual = validate_create_statement_wh(script, "my_table")
         assert actual == script
 
 
@@ -87,7 +88,7 @@ class TestValidationStatementPopulateProd:
     )
     def test_invalid_populate_prod_statement(script):
         with pytest.raises(InvalidStatementError):
-            validate_populate_prod_statement(script, "my_table")
+            validate_populate_statement_wh(script, "my_table")
 
 
 class TestValidationStatementDefineStaging:

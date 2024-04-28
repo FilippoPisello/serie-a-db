@@ -3,15 +3,14 @@ from datetime import datetime
 import pytest
 
 from serie_a_db import utils
-from serie_a_db.db.build import create_meta_tables
-from serie_a_db.db.db import Db
+from serie_a_db.db.client import Db
 
 
 @pytest.fixture(name="db")
 def in_memory_db():
     """Provide a Db instance in memory."""
     db = Db.in_memory()
-    create_meta_tables(db)
+    db.meta.create_meta_tables()
     try:
         yield db
     finally:

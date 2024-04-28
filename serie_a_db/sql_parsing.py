@@ -1,4 +1,4 @@
-"""Generic classes for updating a database table."""
+"""Logic to validate and parse SQL text."""
 
 import re
 
@@ -22,7 +22,7 @@ def split_statements(script: str, num_expected: int) -> tuple[str, ...]:
     return tuple(statements)
 
 
-def validate_create_prod_statement(statement: str, table_name: str) -> str:
+def validate_create_statement_wh(statement: str, table_name: str) -> str:
     """Validate the CREATE TABLE statement for the production table."""
     expected_pattern = f"CREATE TABLE IF NOT EXISTS {table_name} "
     if expected_pattern not in statement:
@@ -30,7 +30,7 @@ def validate_create_prod_statement(statement: str, table_name: str) -> str:
     return statement
 
 
-def validate_populate_prod_statement(statement: str, table_name: str) -> str:
+def validate_populate_statement_wh(statement: str, table_name: str) -> str:
     """Validate the INSERT statement for populating the production table."""
     expected_pattern = f"INSERT INTO {table_name}"
     if expected_pattern not in statement:
@@ -52,6 +52,11 @@ def depends_on(statement: str, all_tables: set[str]) -> set[str]:
 
 
 def infer_populate_staging_statement(definition_statement: str, table_name: str) -> str:
+    """Infer the INSERT statement for populating the staging table.
+
+    The statement is inferred by extracting the columns from the CREATE TABLE
+    statement.
+    """
     columns = extract_columns_from_create_statement(definition_statement)
     columns_str = ", ".join(columns)
     question_marks = ", ".join("?" for _ in columns)
