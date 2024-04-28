@@ -1,8 +1,10 @@
 """Wrapper around sqlite3.db adding some utility methods."""
 
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 from sqlite3 import Connection, Cursor, connect
+from time import sleep
 from typing import Self
 
 from serie_a_db import DB_FILE, META_DIR
@@ -74,3 +76,26 @@ class DbMeta:
             """,
             (table_name, now().isoformat(sep=" ", timespec="milliseconds"), n_rows),
         )
+        # Sleep for one millisecond to ensure that two updates cannot
+        # be logged at the same time
+        sleep(0.001)
+
+    def was_updated_today(self, table_name: str) -> bool:
+        """Return True if the table was updated today."""
+        last_updated = self.last_updated(table_name)
+        if last_updated is None:
+            return False
+        return last_updated.date() == now().date()
+
+    def last_updated(self, table_name: str) -> None | datetime:
+        """Return the timestamp for the last update of this table."""
+        try:
+            datetime_str = self.db.execute(
+                f"""SELECT datetime_updated FROM ft_tables_update
+                WHERE table_name = '{table_name}'
+                ORDER BY datetime_updated DESC
+                LIMIT 1"""
+            ).fetchone()[0]
+        except (IndexError, TypeError):
+            return None
+        return datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S.%f")

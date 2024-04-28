@@ -1,5 +1,6 @@
 """Logic to update the db."""
 
+
 from serie_a_db.db.client import Db
 from serie_a_db.db.table import DbTable
 
@@ -14,7 +15,7 @@ class DbUpdater:
         ----
             db: The database client.
             schema: The schema of the database.
-        
+
         """
         self.db = db
         self.schema = schema
@@ -29,7 +30,7 @@ class DbUpdater:
         Args:
         ----
             tables: The tables to update.
-        
+
         """
         for table in tables.values():
             self.update_table_and_upstream_dependencies(table)
@@ -38,6 +39,10 @@ class DbUpdater:
         """Update the passed table and its upstream dependencies."""
         for dependency in table.depends_on(self.schema):
             self.update_table_and_upstream_dependencies(self.schema[dependency])
+
+        # Do not update if already updated at this runtime
+        if self.db.meta.was_updated_today(table.name):
+            return
 
         table.update(self.db)
         self.db.meta.log_table_update(table.name)
