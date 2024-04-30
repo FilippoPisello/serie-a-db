@@ -1,5 +1,7 @@
 """Custom exceptions."""
 
+from sqlite3 import OperationalError
+
 from serie_a_db import context
 
 
@@ -61,3 +63,19 @@ class IncompatibleDataError(TableUpdateError):
             f"Expected columns {expected_columns} but got {data_columns}."
         )
         super().__init__(msg)
+
+
+class NoSuchTableError(OperationalError):
+    """The table does not exist in the database."""
+
+    def __init__(self) -> None:
+        msg = "Trying to access a table that does not exist!"
+        super().__init__(msg)
+
+
+def raise_proper_operational_error(e: OperationalError) -> None:
+    """Raise a proper exception for an OperationalError."""
+    excinfo = str(e)
+    if "no such table" in excinfo:
+        raise NoSuchTableError() from e
+    raise e
