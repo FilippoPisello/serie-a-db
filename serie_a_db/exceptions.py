@@ -1,6 +1,7 @@
 """Custom exceptions."""
 
 from sqlite3 import OperationalError
+from typing import Never
 
 from serie_a_db import context
 
@@ -73,7 +74,7 @@ class NoSuchTableError(OperationalError):
         super().__init__(msg)
 
 
-def raise_proper_operational_error(e: OperationalError) -> None:
+def raise_proper_operational_error(e: OperationalError) -> Never:
     """Raise a proper exception for an OperationalError."""
     excinfo = str(e)
     if "no such table" in excinfo:
