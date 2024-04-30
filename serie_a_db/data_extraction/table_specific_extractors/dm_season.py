@@ -1,12 +1,14 @@
-"""Logic to update the dm_season table."""
+"""Extract data to populate the dm_season table."""
 
 from typing import NamedTuple
 
 from bs4 import BeautifulSoup, NavigableString
+from pydantic import Field
 
 from serie_a_db.data_extraction.clients.lega_serie_a_website import SerieAWebsite
 from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
 from serie_a_db.db.client import Db
+from serie_a_db.exceptions import NoSuchTableError
 
 
 class Season(DbInputBaseModel):
@@ -14,7 +16,7 @@ class Season(DbInputBaseModel):
 
     year_start: int
     code_serie_a_api: int
-    active: int
+    active: int = Field(ge=0, le=1)
 
 
 def scrape_dm_season_data(
@@ -39,11 +41,12 @@ def establish_earliest_season_to_look_for(db: Db) -> int:
     everything in the past is instead fixed and does not need to be updated.
     """
     # Get active season from the database
-    res = db.select("SELECT year_start FROM dm_season WHERE active = 1")
-    if res:
+    try:
+        res = db.select("SELECT year_start FROM dm_season WHERE active = 1")
         return res[0][0]
-    # Never go earlier than 2000
-    return 2000
+    except (NoSuchTableError, IndexError):
+        # Never go earlier than 2000
+        return 2000
 
 
 def scrape_data_from_the_web(

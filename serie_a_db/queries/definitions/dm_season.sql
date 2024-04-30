@@ -11,18 +11,24 @@ CREATE TABLE IF NOT EXISTS dm_season (
 WITH dm_season_enriched AS (
     SELECT
         year_start                          AS year_start,
+        SUBSTR(year_start, 3, 2)            AS year_start_yy,
+        SUBSTR(year_start + 1, 3, 2)        AS year_end_yy,
         code_serie_a_api                    AS code_serie_a_api,
         active                              AS active,
-        SUBSTR(year_start, 3, 2)
-            || '-'
+        'S'
+            || SUBSTR(year_start, 3, 2)
             || SUBSTR(year_start + 1, 3, 2) AS season_id
     FROM dm_season_staging
 ),
 dm_season_preload AS (
     SELECT
-        season_id                           AS season_id,
         'S'
-            || season_id                    AS display_name,
+            || year_start_yy
+            || year_end_yy                  AS season_id,
+        'S'
+            || year_start_yy
+            || '-'
+            || year_end_yy                  AS display_name,
         code_serie_a_api                    AS code_serie_a_api,
         year_start                          AS year_start,
         year_start + 1                      AS year_end,
