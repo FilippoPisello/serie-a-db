@@ -9,8 +9,9 @@ from serie_a_db.db.client import Db
 from serie_a_db.exceptions import IncompatibleDataError
 from serie_a_db.sql_parsing import (
     depends_on,
+    derive_drop_table_statement,
+    derive_populate_staging_statement,
     extract_columns_from_create_statement,
-    infer_populate_staging_statement,
     split_statements,
     validate_create_staging_statement,
     validate_create_statement_wh,
@@ -67,6 +68,7 @@ class WarehouseTable(DbTable):
         """Return the names of the tables this table depends on."""
         db.execute(self.definition_statement)
         db.execute(self.populate_statement)
+        db.commit()
 
 
 class StagingTable(DbTable):
@@ -109,20 +111,28 @@ class StagingTable(DbTable):
     @property
     def populate_statement(self) -> str:
         """SQL statement to populate the staging table."""
-        return infer_populate_staging_statement(self.definition_statement, self.name)
+        return derive_populate_staging_statement(self.definition_statement, self.name)
 
     @property
-    def staging_columns(self) -> tuple[str]:
+    def staging_columns(self) -> tuple[str, ...]:
         """Columns of the staging table."""
         return extract_columns_from_create_statement(self.definition_statement)
 
+    @property
+    def drop_statement(self) -> str:
+        """SQL statement to drop the staging table."""
+        return derive_drop_table_statement(self.name)
+
     def update(self, db: Db) -> None:
         """Return the names of the tables this table depends on."""
+        # Drop and recreate the staging table
+        db.execute(self.drop_statement)
         db.execute(self.definition_statement)
         data = self.extract_external_data()
 
         self.error_if_data_incompatible(data, self.staging_columns)
         db.cursor.executemany(self.populate_statement, data)
+        db.commit()
 
     @classmethod
     def error_if_data_incompatible(

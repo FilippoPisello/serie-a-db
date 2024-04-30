@@ -8,6 +8,7 @@ from time import sleep
 from typing import Self
 
 from serie_a_db import DB_FILE, META_DIR
+from serie_a_db.exceptions import raise_proper_operational_error
 from serie_a_db.utils import now
 
 
@@ -34,7 +35,7 @@ class Db:
         try:
             return self.cursor.execute(statement, *args, **kwargs)
         except sqlite3.OperationalError as e:
-            raise sqlite3.OperationalError(f"Error executing: {statement}") from e
+            raise_proper_operational_error(e)
 
     def close_connection(self) -> None:
         """Close the connection to the database."""

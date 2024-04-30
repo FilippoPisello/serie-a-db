@@ -51,7 +51,9 @@ def depends_on(statement: str, all_tables: set[str]) -> set[str]:
     return {table for table in all_tables if table in statement}
 
 
-def infer_populate_staging_statement(definition_statement: str, table_name: str) -> str:
+def derive_populate_staging_statement(
+    definition_statement: str, table_name: str
+) -> str:
     """Infer the INSERT statement for populating the staging table.
 
     The statement is inferred by extracting the columns from the CREATE TABLE
@@ -64,7 +66,7 @@ def infer_populate_staging_statement(definition_statement: str, table_name: str)
         VALUES({question_marks});"""
 
 
-def extract_columns_from_create_statement(create_statement: str) -> tuple[str]:
+def extract_columns_from_create_statement(create_statement: str) -> tuple[str, ...]:
     """Extract the columns from a CREATE TABLE statement.
 
     It is assumed that each column is defined in a separate line.
@@ -88,8 +90,16 @@ def extract_columns_from_create_statement(create_statement: str) -> tuple[str]:
         x[0].rstrip(",") for x in [col.split() for col in col_definition_clauses]
     )
     # Remove unwanted values like PRIMARY KEY, CHECK, etc.
-    return tuple(
+    columns = tuple(
         col
         for col in columns_and_ending_clauses
-        if col.upper() not in ("PRIMARY", "CHECK")
-    )  # type: ignore # mypy thinks we might have a tuple of str | None
+        if col.upper() not in ("PRIMARY", "CHECK", "FOREIGN", "REFERENCES", "ON")
+    )
+    if not columns:
+        raise ColumnsNotFoundError(create_statement)
+    return columns
+
+
+def derive_drop_table_statement(table_name: str) -> str:
+    """Generate a DROP TABLE statement."""
+    return f"DROP TABLE IF EXISTS {table_name};"
