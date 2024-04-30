@@ -3,8 +3,9 @@ import pytest
 from serie_a_db.exceptions import InvalidStatementError, NumberOfStatementsError
 from serie_a_db.sql_parsing import (
     depends_on,
+    derive_drop_table_statement,
+    derive_populate_staging_statement,
     extract_columns_from_create_statement,
-    infer_populate_staging_statement,
     split_statements,
     validate_create_staging_statement,
     validate_create_statement_wh,
@@ -194,6 +195,43 @@ class TestDependenciesDetection:
                 );""",
             ("note", "date"),
         ),
+        (  # Multiple columns ending with a FOREIGN KEY clause
+            """CREATE TABLE IF NOT EXISTS dm_table (
+                    note,
+                    date,
+                    FOREIGN KEY (note)
+                );""",
+            ("note", "date"),
+        ),
+        (  # Multiple columns ending with a REFERENCES clause
+            """CREATE TABLE IF NOT EXISTS dm_table (
+                    note,
+                    date,
+                    FOREIGN KEY (note)
+                    REFERENCES other_table (note)
+                );""",
+            ("note", "date"),
+        ),
+        (  # Multiple columns ending with a ON UPDATE clause
+            """CREATE TABLE IF NOT EXISTS dm_table (
+                    note,
+                    date,
+                    FOREIGN KEY (note)
+                    REFERENCES other_table (note)
+                        ON UPDATE CASCADE
+                );""",
+            ("note", "date"),
+        ),
+        (  # Multiple columns ending with a ON DELETE clause
+            """CREATE TABLE IF NOT EXISTS dm_table (
+                    note,
+                    date,
+                    FOREIGN KEY (note)
+                    REFERENCES other_table (note)
+                        ON DELETE CASCADE
+                );""",
+            ("note", "date"),
+        ),
     ),
 )
 def test_columns_inference(statement, expected_columns):
@@ -224,5 +262,11 @@ def test_columns_inference(statement, expected_columns):
 def test_insert_values_into_staging_is_derived_from_staging_statement(
     staging_statement, expected
 ):
-    actual = infer_populate_staging_statement(staging_statement, "dm_table_staging")
+    actual = derive_populate_staging_statement(staging_statement, "dm_table_staging")
     assert strings_equivalent(actual, expected)
+
+
+def test_drop_table_statement_is_generated():
+    actual = derive_drop_table_statement("dm_table")
+    expected = "DROP TABLE IF EXISTS dm_table;"
+    assert actual == expected
