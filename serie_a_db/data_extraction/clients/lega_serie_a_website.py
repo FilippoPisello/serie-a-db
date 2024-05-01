@@ -1,5 +1,7 @@
 """Get data from the official Serie A website."""
 
+from functools import lru_cache
+
 import requests
 
 
@@ -16,6 +18,7 @@ class SerieAWebsite:
         return resp.text
 
     @classmethod
+    @lru_cache(maxsize=128)
     def get_season_page(cls, season_api_code: int) -> dict:
         """Get the API data for a single season."""
         resp = requests.get(
