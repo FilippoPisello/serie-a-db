@@ -64,7 +64,16 @@ def _scrape_match_day_data_from_the_web(
                     season_code_serie_a_api=season_code,
                     code_serie_a_api=match_day["id_category"],
                     number=int(match_day["description"]),
-                    active=match_day["category_status"] == "PLAYED",
+                    status=_map_status(match_day["category_status"]),
                 ).to_namedtuple()
             )
     return data
+
+
+def _map_status(external_status: str) -> Status:
+    _map = {"PLAYED": Status.COMPLETED, "TO BE PLAYED": Status.UPCOMING}
+    try:
+        return _map[external_status]
+    except KeyError as err:
+        msg = f"Cannot handle unknown match status {external_status}"
+        raise ValueError(msg) from err

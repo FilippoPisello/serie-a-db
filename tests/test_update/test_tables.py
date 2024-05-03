@@ -25,8 +25,8 @@ def test_dm_season_update(db: Db):
     # Assert
     assert db.count_rows("dm_season") == len(data)
     assert db.get_all_rows("dm_season") == [
-        ("S2324", "S23-24", 23, 2023, 2024, 1),
-        ("S2223", "S22-23", 22, 2022, 2023, 0),
+        ("S23", "S23-24", 23, 2023, 2024, 1),
+        ("S22", "S22-23", 22, 2022, 2023, 0),
     ]
 
 

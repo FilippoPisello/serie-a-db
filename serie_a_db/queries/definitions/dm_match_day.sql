@@ -4,7 +4,11 @@ CREATE TABLE IF NOT EXISTS dm_match_day (
     display_name STR NOT NULL,
     code_serie_a_api INT NOT NULL,
     number INT NOT NULL CHECK (number IN (1, 38)),
-    status STR CHECK (status IN ("completed", "ongoing", "upcoming"))
+    status STR CHECK (status IN ("completed", "ongoing", "upcoming")),
+    FOREIGN KEY (season_id)
+        REFERENCES dm_season (season_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
 );
 
 
@@ -13,16 +17,16 @@ WITH dm_match_day_preload AS (
         dses.season_id                                AS season_id,
         dses.season_id
             || 'M'
-            || dmds.number                            AS match_day_id,
+            || SUBSTR('0' || dmds.number, -2)         AS match_day_id,
         dses.display_name
             || ' MD'
-            || number                                 AS display_name,
-        code_serie_a_api                              AS code_serie_a_api,
-        number                                        AS number,
-        active                                        AS active
+            || SUBSTR('0' || dmds.number, -2)         AS display_name,
+        dmds.code_serie_a_api                         AS code_serie_a_api,
+        dmds.number                                   AS number,
+        dmds.status                                   AS status
     FROM dm_match_day_staging AS dmds
         INNER JOIN dm_season AS dses
-            ON (dmds.season_code_serie_a_api = dses.season_code_serie_a_api)
+            ON (dmds.season_code_serie_a_api = dses.code_serie_a_api)
 )
 INSERT INTO dm_match_day
 SELECT
@@ -31,12 +35,14 @@ SELECT
     display_name,
     code_serie_a_api,
     number,
-    active
+    status
 FROM dm_match_day_preload
+WHERE true
 ON CONFLICT (match_day_id) DO UPDATE
-SET season_id = EXCLUDED.season_id,
+SET 
+    season_id = EXCLUDED.season_id,
     display_name = EXCLUDED.display_name,
     code_serie_a_api = EXCLUDED.code_serie_a_api,
     number = EXCLUDED.number,
-    active = EXCLUDED.active
+    status = EXCLUDED.status
 ;

@@ -33,8 +33,8 @@ def test_scraping_match_day_data(db):
 
     # Assert
     assert data == [
-        (123, 157707, 1, 1),
-        (123, 157713, 21, 0),
+        (123, 157707, 1, "completed"),
+        (123, 157713, 21, "upcoming"),
     ]
 
 

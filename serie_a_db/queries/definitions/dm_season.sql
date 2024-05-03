@@ -14,17 +14,13 @@ WITH dm_season_enriched AS (
         SUBSTR(year_start, 3, 2)            AS year_start_yy,
         SUBSTR(year_start + 1, 3, 2)        AS year_end_yy,
         code_serie_a_api                    AS code_serie_a_api,
-        active                              AS active,
-        'S'
-            || SUBSTR(year_start, 3, 2)
-            || SUBSTR(year_start + 1, 3, 2) AS season_id
+        active                              AS active
     FROM dm_season_staging
 ),
 dm_season_preload AS (
     SELECT
         'S'
-            || year_start_yy
-            || year_end_yy                  AS season_id,
+            || year_start_yy                AS season_id,
         'S'
             || year_start_yy
             || '-'
