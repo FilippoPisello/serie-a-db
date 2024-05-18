@@ -3,6 +3,7 @@ from unittest.mock import Mock
 from serie_a_db.data_extraction.table_specific_extractors.dm_season import (
     scrape_data_from_the_web,
 )
+from serie_a_db.data_extraction.table_specific_extractors.shared_values import Status
 
 
 class TestExtractData:
@@ -37,8 +38,8 @@ class TestExtractData:
         data = scrape_data_from_the_web(mock_client, min_season=2000)
 
         assert data == [
-            (2023, 157617, 0),
-            (2022, 150052, 0),
+            (2023, 157617, Status.COMPLETED),
+            (2022, 150052, Status.COMPLETED),
         ]
 
     @staticmethod
@@ -70,5 +71,5 @@ class TestExtractData:
         data = scrape_data_from_the_web(mock_client, min_season=2000)
 
         assert data == [
-            (2000, 150052, 0),
+            (2000, 150052, Status.COMPLETED),
         ]

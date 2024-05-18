@@ -3,10 +3,10 @@
 from typing import NamedTuple
 
 from bs4 import BeautifulSoup, NavigableString
-from pydantic import Field
 
 from serie_a_db.data_extraction.clients.lega_serie_a_website import SerieAWebsite
 from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
+from serie_a_db.data_extraction.table_specific_extractors.shared_values import Status
 from serie_a_db.db.client import Db
 from serie_a_db.exceptions import NoSuchTableError
 
@@ -16,7 +16,7 @@ class Season(DbInputBaseModel):
 
     year_start: int
     code_serie_a_api: int
-    active: int = Field(ge=0, le=1)
+    status: Status
 
 
 def scrape_dm_season_data(
@@ -42,7 +42,7 @@ def establish_earliest_season_to_look_for(db: Db) -> int:
     """
     # Get active season from the database
     try:
-        res = db.select("SELECT year_start FROM dm_season WHERE active = 1")
+        res = db.select("SELECT year_start FROM dm_season WHERE status = 'ongoing'")
         return res[0][0]
     except (NoSuchTableError, IndexError):
         # Never go earlier than 2000
@@ -65,7 +65,7 @@ def scrape_data_from_the_web(
         season = Season(
             year_start=season_year_start,
             code_serie_a_api=season_api_code,
-            active=_find_is_active_season(season_page),
+            status=_infer_status(season_page),
         )
         seasons.append(season.to_namedtuple())
 
@@ -88,8 +88,14 @@ def _find_seasons(homepage: str) -> list[tuple[int, int]]:
     ]
 
 
-def _find_is_active_season(season_response: dict) -> bool:
+def _infer_status(season_response: dict) -> Status:
     """Extract if the season is active."""
     data = season_response["data"]
+
+    # The season is upcoming if no game was played yet
+    if all(game_day["category_status"] == "TO BE PLAYED" for game_day in data):
+        return Status.UPCOMING
     # The season is active if any game day is still to be played
-    return any(game_day["category_status"] == "TO BE PLAYED" for game_day in data)
+    if any(game_day["category_status"] == "TO BE PLAYED" for game_day in data):
+        return Status.ONGOING
+    return Status.COMPLETED

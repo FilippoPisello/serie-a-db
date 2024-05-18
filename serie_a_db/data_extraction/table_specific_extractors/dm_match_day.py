@@ -1,21 +1,12 @@
 """Extract data to populate the dm_match_day table."""
 
-from enum import StrEnum
-
 from pydantic import Field
 
 from serie_a_db.data_extraction.clients.lega_serie_a_website import SerieAWebsite
 from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
+from serie_a_db.data_extraction.table_specific_extractors.shared_values import Status
 from serie_a_db.db.client import Db
 from serie_a_db.exceptions import NoSuchTableError
-
-
-class Status(StrEnum):
-    """Match day status."""
-
-    COMPLETED = "completed"
-    ONGOING = "ongoing"
-    UPCOMING = "upcoming"
 
 
 class MatchDay(DbInputBaseModel):

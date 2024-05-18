@@ -10,8 +10,10 @@ def test_dm_season_update(db: Db):
     """Test the update of the dm_season table."""
     # Arrange
     data = [
-        Season(year_start=2023, code_serie_a_api=23, active=1).to_namedtuple(),
-        Season(year_start=2022, code_serie_a_api=22, active=0).to_namedtuple(),
+        Season(year_start=2023, code_serie_a_api=23, status="ongoing").to_namedtuple(),
+        Season(
+            year_start=2022, code_serie_a_api=22, status="completed"
+        ).to_namedtuple(),
     ]
     test_schema = {
         "dm_season": Wt.from_file("dm_season"),
@@ -25,8 +27,8 @@ def test_dm_season_update(db: Db):
     # Assert
     assert db.count_rows("dm_season") == len(data)
     assert db.get_all_rows("dm_season") == [
-        ("S23", "S23-24", 23, 2023, 2024, 1),
-        ("S22", "S22-23", 22, 2022, 2023, 0),
+        ("S23", "S23-24", 23, 2023, 2024, "ongoing"),
+        ("S22", "S22-23", 22, 2022, 2023, "completed"),
     ]
 
 
@@ -41,7 +43,7 @@ def test_dm_match_day_update(db: Db):
         ).to_namedtuple(),
     ]
     season_data = [
-        Season(year_start=2023, code_serie_a_api=23, active=1).to_namedtuple(),
+        Season(year_start=2023, code_serie_a_api=23, status="ongoing").to_namedtuple(),
     ]
     test_schema = {
         "dm_match_day": Wt.from_file("dm_match_day"),

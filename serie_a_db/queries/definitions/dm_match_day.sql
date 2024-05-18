@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS dm_match_day (
-    match_day_id STR PRIMARY KEY,
+    match_day_id STR PRIMARY KEY CHECK (LENGTH(match_day_id) = 6),
     season_id STR,
     display_name STR NOT NULL,
     code_serie_a_api INT NOT NULL,
@@ -39,7 +39,7 @@ SELECT
 FROM dm_match_day_preload
 WHERE true
 ON CONFLICT (match_day_id) DO UPDATE
-SET 
+SET
     season_id = EXCLUDED.season_id,
     display_name = EXCLUDED.display_name,
     code_serie_a_api = EXCLUDED.code_serie_a_api,
