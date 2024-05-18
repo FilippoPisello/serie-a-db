@@ -42,9 +42,7 @@ def test_dm_match_day_update(db: Db):
             status="completed",
         ).to_namedtuple(),
     ]
-    season_data = [
-        Season(year_start=2023, code_serie_a_api=23, status="ongoing").to_namedtuple(),
-    ]
+    season_data = [Season.fake(code_serie_a_api=23, year_start=2023).to_namedtuple()]
     test_schema = {
         "dm_match_day": Wt.from_file("dm_match_day"),
         "dm_match_day_staging": St.from_file(

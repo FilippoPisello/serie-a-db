@@ -1,6 +1,6 @@
 """Extract data to populate the dm_season table."""
 
-from typing import NamedTuple
+from typing import NamedTuple, Self
 
 from bs4 import BeautifulSoup, NavigableString
 
@@ -17,6 +17,15 @@ class Season(DbInputBaseModel):
     year_start: int
     code_serie_a_api: int
     status: Status
+
+    @classmethod
+    def fake(cls, **kwargs) -> Self:
+        data = {
+            "year_start": 2024,
+            "code_serie_a_api": 24,
+            "status": Status.COMPLETED,
+        } | kwargs
+        return cls(**data)
 
 
 def scrape_dm_season_data(

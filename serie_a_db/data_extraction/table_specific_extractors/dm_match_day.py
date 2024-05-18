@@ -1,5 +1,7 @@
 """Extract data to populate the dm_match_day table."""
 
+from typing import Self
+
 from pydantic import Field
 
 from serie_a_db.data_extraction.clients.lega_serie_a_website import SerieAWebsite
@@ -16,6 +18,16 @@ class MatchDay(DbInputBaseModel):
     code_serie_a_api: int
     number: int = Field(ge=1, le=38)
     status: Status
+
+    @classmethod
+    def fake(cls, **kwargs) -> Self:
+        data = {
+            "season_code_serie_a_api": 24,
+            "code_serie_a_api": 241,
+            "number": 1,
+            "status": Status.COMPLETED,
+        } | kwargs
+        return cls(**data)
 
 
 def scrape_match_day_data(
