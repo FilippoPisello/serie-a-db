@@ -1,0 +1,94 @@
+"""Extract data to populate the dm_match_day table."""
+
+from typing import NamedTuple, Self
+
+from pydantic import Field
+
+from serie_a_db.data_extraction.clients.lega_serie_a_website import SerieAWebsite
+from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
+from serie_a_db.data_extraction.table_specific_extractors.shared_values import Status
+from serie_a_db.db.client import Db
+from serie_a_db.exceptions import NoSuchTableError
+
+
+class MatchDay(DbInputBaseModel):
+    """Match day data model."""
+
+    season_code_serie_a_api: int
+    code_serie_a_api: int
+    number: int = Field(ge=1, le=38)
+    status: Status
+
+    @classmethod
+    def fake(cls, **kwargs) -> Self:
+        """Generate an instance with default values for all attributes.
+
+        To be used for testing purposes. Specific attributes can be overridden
+        by passing them as keyword arguments.
+        """
+        data = {
+            "season_code_serie_a_api": 24,
+            "code_serie_a_api": 241,
+            "number": 1,
+            "status": Status.COMPLETED,
+        } | kwargs
+        return cls(**data)  # type: ignore
+
+
+def scrape_match_day_data(
+    db: Db | None = None,
+    serie_a_website_client: SerieAWebsite | None = None,
+) -> list[NamedTuple]:
+    """Extract match day data."""
+    # Facilitate replacement with mocks for testing
+    if db is None:
+        db = Db()
+    if serie_a_website_client is None:
+        serie_a_website_client = SerieAWebsite()
+
+    season_codes = _get_season_codes(db)
+    return _scrape_match_day_data_from_the_web(serie_a_website_client, season_codes)
+
+
+def _get_season_codes(db: Db) -> set[int]:
+    """Get the season codes from the database."""
+    try:
+        season_codes = db.select("SELECT code_serie_a_api FROM dm_season")
+    except NoSuchTableError:
+        return set()
+    finally:
+        db.close_connection()
+    return {row[0] for row in season_codes}
+
+
+def _scrape_match_day_data_from_the_web(
+    serie_a_website_client: SerieAWebsite, season_codes: set[int]
+) -> list[NamedTuple]:
+    """Scrape match day data from the web."""
+    data = []
+    for season_code in season_codes:
+        season_page = serie_a_website_client.get_season_page(season_code)
+        for match_day in season_page["data"]:
+            data.append(
+                MatchDay(
+                    season_code_serie_a_api=season_code,
+                    code_serie_a_api=match_day["id_category"],
+                    number=int(match_day["description"]),
+                    status=_map_status(match_day["category_status"]),
+                ).to_namedtuple()
+            )
+    return data
+
+
+def _map_status(external_status: str) -> Status:
+    _map = {
+        "PLAYED": Status.COMPLETED,
+        "TO BE PLAYED": Status.UPCOMING,
+        "POSTPONED": Status.UPCOMING,
+        "LIVE": Status.ONGOING,
+    }
+    try:
+        return _map[external_status]
+    except KeyError as err:
+        msg = f"Cannot handle unknown match status {external_status}"
+        raise ValueError(msg) from err

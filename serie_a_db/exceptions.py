@@ -74,9 +74,19 @@ class NoSuchTableError(OperationalError):
         super().__init__(msg)
 
 
+class LockedDatabaseError(OperationalError):
+    """The database is locked."""
+
+    def __init__(self) -> None:
+        msg = "The database is locked!"
+        super().__init__(msg)
+
+
 def raise_proper_operational_error(e: OperationalError) -> Never:
     """Raise a proper exception for an OperationalError."""
     excinfo = str(e)
     if "no such table" in excinfo:
         raise NoSuchTableError() from e
+    if "database is locked" in excinfo:
+        raise LockedDatabaseError() from e
     raise e

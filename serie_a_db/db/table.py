@@ -1,5 +1,6 @@
 """Define the classes to represent the tables in the database."""
 
+import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, NamedTuple, Self
@@ -17,6 +18,8 @@ from serie_a_db.sql_parsing import (
     validate_create_statement_wh,
     validate_populate_statement_wh,
 )
+
+LOGGER = logging.getLogger(__name__)
 
 
 class DbTable(ABC):
@@ -66,6 +69,7 @@ class WarehouseTable(DbTable):
 
     def update(self, db: Db) -> None:
         """Return the names of the tables this table depends on."""
+        LOGGER.info("Updating table %s", self.name)
         db.execute(self.definition_statement)
         db.execute(self.populate_statement)
         db.commit()
@@ -125,6 +129,7 @@ class StagingTable(DbTable):
 
     def update(self, db: Db) -> None:
         """Return the names of the tables this table depends on."""
+        LOGGER.info("Updating table %s", self.name)
         # Drop and recreate the staging table
         db.execute(self.drop_statement)
         db.execute(self.definition_statement)

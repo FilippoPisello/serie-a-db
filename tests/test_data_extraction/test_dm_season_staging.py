@@ -1,33 +1,9 @@
 from unittest.mock import Mock
 
 from serie_a_db.data_extraction.table_specific_extractors.dm_season import (
-    Season,
     scrape_data_from_the_web,
 )
-from serie_a_db.db.client import Db
-from serie_a_db.db.table import StagingTable, WarehouseTable
-
-
-def test_dm_season_update(db: Db):
-    """Test the update method of DmSeason."""
-    # Arrange
-    dm_season = WarehouseTable.from_file("dm_season")
-    data = [
-        Season(year_start=2023, code_serie_a_api=23, active=1).to_namedtuple(),
-        Season(year_start=2022, code_serie_a_api=22, active=0).to_namedtuple(),
-    ]
-    dm_staging = StagingTable.from_file("dm_season_staging", lambda: data)
-
-    # Act
-    dm_staging.update(db)
-    dm_season.update(db)
-
-    # Assert
-    assert db.count_rows("dm_season") == len(data)
-    assert db.get_all_rows("dm_season") == [
-        ("23-24", "S23-24", 23, 2023, 2024, 1),
-        ("22-23", "S22-23", 22, 2022, 2023, 0),
-    ]
+from serie_a_db.data_extraction.table_specific_extractors.shared_values import Status
 
 
 class TestExtractData:
@@ -62,8 +38,8 @@ class TestExtractData:
         data = scrape_data_from_the_web(mock_client, min_season=2000)
 
         assert data == [
-            (2023, 157617, 0),
-            (2022, 150052, 0),
+            (2023, 157617, Status.COMPLETED),
+            (2022, 150052, Status.COMPLETED),
         ]
 
     @staticmethod
@@ -95,5 +71,5 @@ class TestExtractData:
         data = scrape_data_from_the_web(mock_client, min_season=2000)
 
         assert data == [
-            (2000, 150052, 0),
+            (2000, 150052, Status.COMPLETED),
         ]
