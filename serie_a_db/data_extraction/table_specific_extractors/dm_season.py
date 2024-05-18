@@ -56,6 +56,8 @@ def establish_earliest_season_to_look_for(db: Db) -> int:
     except (NoSuchTableError, IndexError):
         # Never go earlier than 2000
         return 2000
+    finally:
+        db.close_connection()
 
 
 def scrape_data_from_the_web(

@@ -51,6 +51,8 @@ def _get_season_codes(db: Db) -> set[int]:
         season_codes = db.select("SELECT code_serie_a_api FROM dm_season")
     except NoSuchTableError:
         return set()
+    finally:
+        db.close_connection()
     return {row[0] for row in season_codes}
 
 
@@ -74,7 +76,12 @@ def _scrape_match_day_data_from_the_web(
 
 
 def _map_status(external_status: str) -> Status:
-    _map = {"PLAYED": Status.COMPLETED, "TO BE PLAYED": Status.UPCOMING}
+    _map = {
+        "PLAYED": Status.COMPLETED,
+        "TO BE PLAYED": Status.UPCOMING,
+        "POSTPONED": Status.UPCOMING,
+        "LIVE": Status.ONGOING,
+    }
     try:
         return _map[external_status]
     except KeyError as err:

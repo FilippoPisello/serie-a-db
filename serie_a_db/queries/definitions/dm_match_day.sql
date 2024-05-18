@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS dm_match_day (
     season_id STR,
     display_name STR NOT NULL,
     code_serie_a_api INT NOT NULL,
-    number INT NOT NULL CHECK (number IN (1, 38)),
+    number INT NOT NULL CHECK (number BETWEEN 1 AND 38),
     status STR CHECK (status IN ("completed", "ongoing", "upcoming")),
     FOREIGN KEY (season_id)
         REFERENCES dm_season (season_id)
