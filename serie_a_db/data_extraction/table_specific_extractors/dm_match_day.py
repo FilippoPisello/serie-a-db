@@ -1,6 +1,6 @@
 """Extract data to populate the dm_match_day table."""
 
-from typing import Self
+from typing import NamedTuple, Self
 
 from pydantic import Field
 
@@ -21,19 +21,24 @@ class MatchDay(DbInputBaseModel):
 
     @classmethod
     def fake(cls, **kwargs) -> Self:
+        """Generate an instance with default values for all attributes.
+
+        To be used for testing purposes. Specific attributes can be overridden
+        by passing them as keyword arguments.
+        """
         data = {
             "season_code_serie_a_api": 24,
             "code_serie_a_api": 241,
             "number": 1,
             "status": Status.COMPLETED,
         } | kwargs
-        return cls(**data)
+        return cls(**data)  # type: ignore
 
 
 def scrape_match_day_data(
     db: Db | None = None,
     serie_a_website_client: SerieAWebsite | None = None,
-) -> list[MatchDay]:
+) -> list[NamedTuple]:
     """Extract match day data."""
     # Facilitate replacement with mocks for testing
     if db is None:
@@ -58,7 +63,7 @@ def _get_season_codes(db: Db) -> set[int]:
 
 def _scrape_match_day_data_from_the_web(
     serie_a_website_client: SerieAWebsite, season_codes: set[int]
-) -> list[MatchDay]:
+) -> list[NamedTuple]:
     """Scrape match day data from the web."""
     data = []
     for season_code in season_codes:

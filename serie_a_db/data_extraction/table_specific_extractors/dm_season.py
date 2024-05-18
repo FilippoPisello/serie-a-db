@@ -20,12 +20,17 @@ class Season(DbInputBaseModel):
 
     @classmethod
     def fake(cls, **kwargs) -> Self:
+        """Generate an instance with default values for all attributes.
+
+        To be used for testing purposes. Specific attributes can be overridden
+        by passing them as keyword arguments.
+        """
         data = {
             "year_start": 2024,
             "code_serie_a_api": 24,
             "status": Status.COMPLETED,
         } | kwargs
-        return cls(**data)
+        return cls(**data)  # type: ignore
 
 
 def scrape_dm_season_data(
