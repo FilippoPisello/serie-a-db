@@ -15,7 +15,7 @@ mypy = "~=1.8"
 pytest = "~=8.0"
 ruff = "==0.2.2"
 types-beautifulsoup4 = "~=4.12"
-types-PyYAML = "~=6.0"
+types-pyyaml = "~=6.0"
 types-requests = "~=2.31"
 
 [requires]
