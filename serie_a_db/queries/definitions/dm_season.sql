@@ -10,12 +10,15 @@ CREATE TABLE IF NOT EXISTS dm_season (
 
 WITH dm_season_enriched AS (
     SELECT
-        year_start                          AS year_start,
-        SUBSTR(year_start, 3, 2)            AS year_start_yy,
-        SUBSTR(year_start + 1, 3, 2)        AS year_end_yy,
-        code_serie_a_api                    AS code_serie_a_api,
-        status                              AS status
-    FROM dm_season_staging
+        season_code_serie_a_api              AS code_serie_a_api,
+        season_year_start                    AS year_start,
+        SUBSTR(season_year_start, 3, 2)      AS year_start_yy,
+        SUBSTR(season_year_start + 1, 3, 2)  AS year_end_yy,
+        GROUP_CONCAT(DISTINCT status)        AS statuses
+    FROM dm_match_day_staging
+    GROUP BY
+        season_code_serie_a_api,
+        season_year_start
 ),
 dm_season_preload AS (
     SELECT
@@ -28,7 +31,11 @@ dm_season_preload AS (
         code_serie_a_api                    AS code_serie_a_api,
         year_start                          AS year_start,
         year_start + 1                      AS year_end,
-        status                              AS status
+        CASE
+            WHEN statuses = 'completed' THEN 'completed'
+            WHEN statuses = 'upcoming' THEN 'upcoming'
+            ELSE 'ongoing'
+        END                                 AS status
     FROM dm_season_enriched
 )
 INSERT INTO dm_season
