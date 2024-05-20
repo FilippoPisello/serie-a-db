@@ -251,7 +251,11 @@ def test_columns_inference(statement, expected_columns):
                 a_note
             );""",
             """INSERT INTO dm_table_staging(a_note)
-            VALUES(?);""",
+            VALUES(?)
+            ON CONFLICT DO UPDATE
+            SET
+                a_note = excluded.a_note;
+            """,
         ),
         (  # Multiple columns
             """CREATE TABLE dm_table_staging (
@@ -259,7 +263,12 @@ def test_columns_inference(statement, expected_columns):
             a_date
             );""",
             """INSERT INTO dm_table_staging(a_note, a_date)
-            VALUES(?, ?);""",
+            VALUES(?, ?)
+            ON CONFLICT DO UPDATE
+            SET
+                a_note = excluded.a_note,
+                a_date = excluded.a_date;
+            """,
         ),
     ),
 )

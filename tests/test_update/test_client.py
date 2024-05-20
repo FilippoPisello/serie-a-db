@@ -13,3 +13,14 @@ def test_parameters_inserted_into_db_should_be_retrievable(db: Db):
         ("param1", 5.0),
         ("param2", 10.0),
     ]
+
+
+def test_getting_table_attributes(db: Db):
+    # Arrange
+    db.execute("CREATE TABLE st_dummy (dummy_attr INT, dummy_attr2 STR);")
+
+    # Act
+    attributes = db.get_attributes("st_dummy")
+
+    # Assert
+    assert attributes == ("dummy_attr", "dummy_attr2")
