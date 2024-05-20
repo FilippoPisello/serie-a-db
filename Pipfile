@@ -4,9 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pydantic = "~=2.6.2"
-requests = "~=2.31.0"
 beautifulsoup4 = "~=4.12"
+pydantic = "~=2.6"
+pyyaml = "~=6.0"
+requests = "~=2.31"
+yaml = "*"
 
 [dev-packages]
 black = "~=24.2"
@@ -14,6 +16,7 @@ mypy = "~=1.8"
 pytest = "~=8.0"
 ruff = "==0.2.2"
 types-beautifulsoup4 = "~=4.12"
+types-PyYAML = "~=6.0"
 types-requests = "~=2.31"
 
 [requires]

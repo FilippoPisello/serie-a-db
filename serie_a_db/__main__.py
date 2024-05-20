@@ -4,9 +4,11 @@ import logging
 import sys
 from argparse import ArgumentParser, Namespace
 
+from serie_a_db import CONFIG_FILE
 from serie_a_db.db.client import Db
 from serie_a_db.db.schema import TABLES
 from serie_a_db.db.update import DbUpdater
+from serie_a_db.utils import read_yaml
 
 LOGGER = logging.getLogger(__name__)
 
@@ -21,6 +23,7 @@ def main() -> None:
     if args.update:
         LOGGER.info("Updating all tables in the database...")
         db.meta.create_meta_tables()
+        db.meta.set_parameters(read_yaml(CONFIG_FILE)["parameters"])
         builder = DbUpdater(db, schema=TABLES)
         builder.update_all_tables()
         db.close_connection()
