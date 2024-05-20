@@ -117,7 +117,7 @@ class TestValidationStatementDefineStaging:
 
 class TestDependenciesDetection:
 
-    TABLES = {"my_table", "other_table"}
+    TABLES = {"my_table", "other_table", "my_table_staging"}
 
     def test_depends_only_on_self(self):
         script = """INSERT INTO my_table SELECT 5 AS my_column;"""
@@ -141,6 +141,10 @@ class TestDependenciesDetection:
         script = """WITH my_cte AS (SELECT * FROM other_table)
         INSERT INTO my_table SELECT * FROM my_cte;"""
         assert depends_on(script, self.TABLES) == {"my_table", "other_table"}
+
+    def test_staging_table_does_not_match_non_staging_too(self):
+        script = """SELECT * FROM my_table_staging;"""
+        assert depends_on(script, self.TABLES) == {"my_table_staging"}
 
 
 @pytest.mark.parametrize(

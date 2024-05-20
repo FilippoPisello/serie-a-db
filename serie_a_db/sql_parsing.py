@@ -48,7 +48,11 @@ def validate_create_staging_statement(statement: str, table_name: str) -> str:
 
 def depends_on(statement: str, all_tables: set[str]) -> set[str]:
     """Extract the tables that the statement depends on."""
-    return {table for table in all_tables if table in statement}
+    return {
+        table
+        for table in all_tables
+        if re.findall(rf" {table}[^/w_-]", statement, re.IGNORECASE)
+    }
 
 
 def derive_populate_staging_statement(
