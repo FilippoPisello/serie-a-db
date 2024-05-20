@@ -3,9 +3,10 @@ from unittest.mock import Mock
 from serie_a_db.data_extraction.table_specific_extractors.dm_match_day import (
     scrape_match_day_data,
 )
+from serie_a_db.db.client import Db
 
 
-def test_scraping_match_day_data(db):
+def test_scraping_match_day_data(db: Db):
     # Arrange
     serie_a_client = Mock()
     serie_a_client.get_homepage.return_value = r"""
@@ -41,7 +42,7 @@ def test_scraping_match_day_data(db):
     ]
 
 
-def test_seasons_earlier_than_earliest_year_are_ignored(db):
+def test_seasons_earlier_than_earliest_year_are_ignored(db: Db):
     # Arrange
     serie_a_client = Mock()
     serie_a_client.get_homepage.return_value = r"""
@@ -62,12 +63,11 @@ def test_seasons_earlier_than_earliest_year_are_ignored(db):
             },
         ],
     }
-    earliest_season = 2000
-    # db.execute("CREATE OR REPLACE TABLE params (key TEXT PRIMARY KEY, value TEXT)")
-    # db.execute("INSERT INTO params VALUES ('earliest_season', '2000')")
+    # Param read from the config
+    earliest_season = db.meta.get_parameter("include_seasons_from_year")
 
     # Act
-    data = scrape_match_day_data(db, serie_a_client, earliest_season)
+    data = scrape_match_day_data(db, serie_a_client)
 
     # Assert
     assert all(row.season_year_start >= earliest_season for row in data)

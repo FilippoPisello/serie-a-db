@@ -49,7 +49,6 @@ class MatchDay(DbInputBaseModel):
 def scrape_match_day_data(
     db: Db | None = None,
     serie_a_website_client: SerieAWebsite | None = None,
-    earliest_season: int = 2000,
 ) -> list[NamedTuple]:
     """Extract match day data."""
     # Facilitate replacement with mocks for testing
@@ -77,8 +76,8 @@ def _get_earliest_season_to_import(db: Db) -> int:
         res = db.select("SELECT year_start FROM dm_season WHERE status = 'ongoing'")
         return res[0][0]
     except (NoSuchTableError, IndexError):
-        # Never go earlier than 2000
-        return 2000
+        # Use minimum season if no active season is found
+        return int(db.meta.get_parameter("include_seasons_from_year"))
     finally:
         db.close_connection()
 
@@ -93,7 +92,7 @@ def _scape_seasons(client: SerieAWebsite) -> list[tuple[int, int]]:
     Returns:
     -------
         List of tuples in the form (starting_year, serie_a_api_code).
-    
+
     """
     homepage = client.get_homepage()
     soup = BeautifulSoup(homepage, "html.parser")

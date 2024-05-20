@@ -63,8 +63,27 @@ class DbMeta:
     def create_meta_tables(self) -> None:
         """Create the meta tables if they don't exist."""
         for file in META_DIR.iterdir():
-            self.db.execute(file.read_text())
+            statements = file.read_text().split(";")
+            for statement in statements:
+                self.db.execute(statement)
         return self.db.commit()
+
+    def set_parameters(self, parameters: dict[str, float]) -> None:
+        """Insert the parameters into the database."""
+        self.db.cursor.executemany(
+            """
+            INSERT INTO dm_parameter(key, value)
+            VALUES(?, ?);
+            """,
+            [(key, value) for key, value in parameters.items()],
+        )
+        return self.db.commit()
+
+    def get_parameter(self, key: str) -> float:
+        """Return the value of the parameter."""
+        return self.db.execute(
+            f"SELECT value FROM dm_parameter WHERE key = '{key}'"
+        ).fetchone()[0]
 
     def log_table_update(self, table_name: str) -> None:
         """Log the update on the ft_tables_update."""

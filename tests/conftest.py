@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from serie_a_db import utils
+from serie_a_db import CONFIG_FILE, utils
 from serie_a_db.db.client import Db
 
 
@@ -11,6 +11,7 @@ def in_memory_db():
     """Provide a Db instance in memory."""
     db = Db.in_memory()
     db.meta.create_meta_tables()
+    db.meta.set_parameters(utils.read_yaml(CONFIG_FILE)["parameters"])
     try:
         yield db
     finally:

@@ -2,6 +2,9 @@
 
 import datetime
 import re
+from pathlib import Path
+
+import yaml
 
 
 def strip_whitespaces_and_newlines(string: str) -> str:
@@ -34,3 +37,9 @@ def now() -> datetime.datetime:
     if FREEZE_TIME_TO:
         return FREEZE_TIME_TO
     return datetime.datetime.now()
+
+
+def read_yaml(file_path: str | Path) -> dict:
+    """Read a YAML file and return its content."""
+    with open(file_path, encoding="utf-8") as file:
+        return yaml.safe_load(file)
