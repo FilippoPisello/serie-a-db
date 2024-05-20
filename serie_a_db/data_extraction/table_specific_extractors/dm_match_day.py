@@ -45,6 +45,12 @@ class MatchDay(DbInputBaseModel):
         } | kwargs
         return cls(**data)  # type: ignore
 
+    @staticmethod
+    def make_id(season_start_year: int, match_day_number: int) -> str:
+        """Create a match day identifier."""
+        year_str = str(season_start_year)
+        return f"S{year_str[-2:]}M{match_day_number:02d}"
+
 
 def scrape_match_day_data(
     db: Db | None = None,

@@ -1,4 +1,5 @@
 CREATE TABLE st_match (
+    match_day_id STR NOT NULL CHECK (LENGTH(match_day_id) = 6),
     match_code_serie_a_api INT NOT NULL,
     away_team_id STR NOT NULL CHECK (LENGTH(away_team_id) = 3),
     away_team_name STR NOT NULL,
@@ -19,5 +20,9 @@ CREATE TABLE st_match (
     away_coach_surname STR NOT NULL,
     home_coach_code_serie_a_api INT NOT NULL,
     home_coach_name STR NOT NULL,
-    home_coach_surname STR NOT NULL
+    home_coach_surname STR NOT NULL,
+    FOREIGN KEY (match_day_id)
+        REFERENCES dm_match_day (match_day_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
 );
