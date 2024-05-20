@@ -12,7 +12,7 @@ from serie_a_db.sql_parsing import (
     depends_on,
     derive_drop_table_statement,
     derive_populate_staging_statement,
-    extract_columns_from_create_statement,
+    extract_attributes_from_create_statement,
     split_statements,
     validate_create_staging_statement,
     validate_create_statement_wh,
@@ -118,9 +118,9 @@ class StagingTable(DbTable):
         return derive_populate_staging_statement(self.definition_statement, self.name)
 
     @property
-    def staging_columns(self) -> tuple[str, ...]:
-        """Columns of the staging table."""
-        return extract_columns_from_create_statement(self.definition_statement)
+    def staging_attributes(self) -> tuple[str, ...]:
+        """Attributes of the staging table."""
+        return extract_attributes_from_create_statement(self.definition_statement)
 
     @property
     def drop_statement(self) -> str:
@@ -135,13 +135,13 @@ class StagingTable(DbTable):
         db.execute(self.definition_statement)
         data = self.extract_external_data()
 
-        self.error_if_data_incompatible(data, self.staging_columns)
+        self.error_if_data_incompatible(data, self.staging_attributes)
         db.cursor.executemany(self.populate_statement, data)
         db.commit()
 
     @classmethod
     def error_if_data_incompatible(
-        cls, data: list[NamedTuple], columns: tuple[str, ...]
+        cls, data: list[NamedTuple], attributes: tuple[str, ...]
     ) -> None:
         """Check that the data is compatible with the table.
 
@@ -151,10 +151,10 @@ class StagingTable(DbTable):
         """
         # Assuming that if the first and last records are valid, the rest
         # of the records are valid as well
-        if data[0]._fields != columns:
-            raise IncompatibleDataError(columns, data[0]._fields)
-        if data[-1]._fields != columns:
-            raise IncompatibleDataError(columns, data[-1]._fields)
+        if data[0]._fields != attributes:
+            raise IncompatibleDataError(attributes, data[0]._fields)
+        if data[-1]._fields != attributes:
+            raise IncompatibleDataError(attributes, data[-1]._fields)
 
 
 def read_script_from_file(table_name: str, directory: Path) -> str:
