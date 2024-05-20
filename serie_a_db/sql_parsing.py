@@ -63,14 +63,14 @@ def derive_populate_staging_statement(
     The statement is inferred by extracting the columns from the CREATE TABLE
     statement.
     """
-    columns = extract_columns_from_create_statement(definition_statement)
+    columns = extract_attributes_from_create_statement(definition_statement)
     columns_str = ", ".join(columns)
     question_marks = ", ".join("?" for _ in columns)
     return f"""INSERT INTO {table_name}({columns_str})
         VALUES({question_marks});"""
 
 
-def extract_columns_from_create_statement(create_statement: str) -> tuple[str, ...]:
+def extract_attributes_from_create_statement(create_statement: str) -> tuple[str, ...]:
     """Extract the columns from a CREATE TABLE statement.
 
     It is assumed that each column is defined in a separate line.

@@ -5,7 +5,7 @@ from serie_a_db.sql_parsing import (
     depends_on,
     derive_drop_table_statement,
     derive_populate_staging_statement,
-    extract_columns_from_create_statement,
+    extract_attributes_from_create_statement,
     split_statements,
     validate_create_staging_statement,
     validate_create_statement_wh,
@@ -239,7 +239,7 @@ class TestDependenciesDetection:
     ),
 )
 def test_columns_inference(statement, expected_columns):
-    columns = extract_columns_from_create_statement(statement)
+    columns = extract_attributes_from_create_statement(statement)
     assert columns == expected_columns
 
 
