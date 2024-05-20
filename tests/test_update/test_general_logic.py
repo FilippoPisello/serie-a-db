@@ -7,8 +7,8 @@ from serie_a_db.db.table import StagingTable, WarehouseTable
 from serie_a_db.db.update import DbUpdater
 from serie_a_db.exceptions import TableUpdateError
 
-DUMMY_INPUT = namedtuple("Season", ["season_id"])
-DUMMY_RECORDS = [DUMMY_INPUT(1), DUMMY_INPUT(2)]
+DUMMY_RECORD = namedtuple("Season", ["dummy_attr"])
+DUMMY_RECORDS = [DUMMY_RECORD(1), DUMMY_RECORD(2)]
 
 
 def test_error_if_data_being_inserted_does_not_match_table_columns(db):
@@ -144,3 +144,44 @@ def test_db_update_dep_lev_1_tables_two_layers(db):
     # Assert
     assert db.meta.last_updated("dm_dep_lev_1") > db.meta.last_updated("dm_base")
     assert db.meta.last_updated("dm_dep_lev_2") > db.meta.last_updated("dm_dep_lev_1")
+
+
+def test_immuted_staging_columns_should_result_in_staging_not_being_dropped(db: Db):
+    """The record in the table is still there after the update."""
+    # Arrange
+    db.execute("CREATE TABLE st_dummy (dummy_attr INTEGER);")
+    db.execute("INSERT INTO st_dummy VALUES (5);")
+
+    table = StagingTable(
+        "st_dummy",
+        "CREATE TABLE st_dummy (dummy_attr INTEGER);",
+        lambda: [DUMMY_RECORD(1), DUMMY_RECORD(2)],
+    )
+
+    # Act
+    builder = DbUpdater(db, {"st_dummy": table})
+    builder.update_all_tables()
+
+    # Assert
+    assert db.select("SELECT * FROM st_dummy WHERE dummy_attr = 5")
+
+
+def test_uniqueness_conflict_should_resolve_in_overwrite_with_new(db: Db):
+    # Arrange
+    definition = """CREATE TABLE st_dummy (
+        dummy_id INTEGER PRIMARY KEY,
+        dummy_name STR);"""
+    db.execute(definition)
+    db.execute("INSERT INTO st_dummy VALUES (1, 'old'), (2, 'old');")
+
+    record = namedtuple("Dummy", ["dummy_id", "dummy_name"])
+    table = StagingTable(
+        "st_dummy", definition, lambda: [record(2, "new"), record(3, "new")]
+    )
+
+    # Act
+    builder = DbUpdater(db, {"st_dummy": table})
+    builder.update_all_tables()
+
+    # Assert
+    assert db.get_all_rows("st_dummy") == [(1, "old"), (2, "new"), (3, "new")]

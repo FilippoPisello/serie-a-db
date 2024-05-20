@@ -53,6 +53,15 @@ class Db:
         """Return all rows from the table."""
         return self.execute(f"SELECT * FROM {table_name}").fetchall()
 
+    def get_attributes(self, table_name: str) -> tuple[str, ...]:
+        """Return the attributes of the table."""
+        return tuple(
+            result[0]
+            for result in self.select(
+                f"SELECT name FROM PRAGMA_TABLE_INFO('{table_name}');"
+            )
+        )
+
 
 class DbMeta:
     """Interface to the meta database."""

@@ -66,14 +66,20 @@ def scrape_match_day_data(
 
 
 def _get_earliest_season_to_import(db: Db) -> int:
-    """Look for data from the active season onwards.
-
-    The active season might become inactive and a new season might start,
-    everything in the past is instead fixed and does not need to be updated.
-    """
+    """Earliest between ongoing seasons and seasons with no match day data."""
     # Get active season from the database
     try:
-        res = db.select("SELECT year_start FROM dm_season WHERE status = 'ongoing'")
+        res = db.select(
+            """
+            SELECT
+                MIN(dms.year_start)
+            FROM dm_season AS dms
+                LEFT JOIN dm_match_day_staging AS st
+                    ON dms.year_start = st.season_year_start
+            WHERE
+                dms.status = 'ongoing' OR st.number IS NULL;
+            """
+        )
         return res[0][0]
     except (NoSuchTableError, IndexError):
         # Use minimum season if no active season is found

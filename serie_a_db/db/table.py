@@ -7,7 +7,7 @@ from typing import Callable, NamedTuple, Self
 
 from serie_a_db import DEFINITIONS_DIR, context
 from serie_a_db.db.client import Db
-from serie_a_db.exceptions import IncompatibleDataError
+from serie_a_db.exceptions import IncompatibleDataError, NoSuchTableError
 from serie_a_db.sql_parsing import (
     depends_on,
     derive_drop_table_statement,
@@ -130,14 +130,29 @@ class StagingTable(DbTable):
     def update(self, db: Db) -> None:
         """Return the names of the tables this table depends on."""
         LOGGER.info("Updating table %s", self.name)
-        # Drop and recreate the staging table
-        db.execute(self.drop_statement)
-        db.execute(self.definition_statement)
+
+        if self._table_should_be_recreated(db):
+            # Drop and recreate the staging table
+            db.execute(self.drop_statement)
+            db.execute(self.definition_statement)
+
         data = self.extract_external_data()
 
         self.error_if_data_incompatible(data, self.staging_attributes)
+        # New data will always overwrite the existing data on conflict
         db.cursor.executemany(self.populate_statement, data)
         db.commit()
+
+    def _table_should_be_recreated(self, db: Db) -> bool:
+        """Check if the table should be recreated."""
+        try:
+            current_attributes = db.get_attributes(self.name)
+        except NoSuchTableError:
+            # Create the table if it doesn't exist
+            return True
+
+        # Recreate the table if the attributes have changed
+        return current_attributes != self.staging_attributes
 
     @classmethod
     def error_if_data_incompatible(
