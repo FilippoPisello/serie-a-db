@@ -66,8 +66,11 @@ def derive_populate_staging_statement(
     columns = extract_attributes_from_create_statement(definition_statement)
     columns_str = ", ".join(columns)
     question_marks = ", ".join("?" for _ in columns)
+    conflicts = ", ".join(f"{col} = excluded.{col}" for col in columns)
     return f"""INSERT INTO {table_name}({columns_str})
-        VALUES({question_marks});"""
+    VALUES({question_marks})
+    ON CONFLICT DO UPDATE
+    SET {conflicts};"""
 
 
 def extract_attributes_from_create_statement(create_statement: str) -> tuple[str, ...]:
