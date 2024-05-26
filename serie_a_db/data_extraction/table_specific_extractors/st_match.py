@@ -1,6 +1,7 @@
 """Extract data to populate the st_match table."""
 
 import logging
+import random
 import time
 from datetime import datetime
 from typing import NamedTuple, Self
@@ -40,7 +41,7 @@ class Match(DbInputBaseModel):
     date: str
     time: str
     time_zone: str
-    duration_minutes: int = Field(ge=0, le=120)
+    duration_minutes: int | None = Field(ge=0, le=120)
 
     @classmethod
     def fake(cls, **kwargs) -> Self:
@@ -58,9 +59,9 @@ class Match(DbInputBaseModel):
             "home_penalty_goals": 1,
             "away_schema": "4-4-2",
             "home_schema": "4-3-3",
-            "duration_minutes": 90,
+            "duration_minutes": None,
             "date": "2024-10-01",
-            "time": "20:45",
+            "time": "20:45:00",
             "time_zone": "UTC+2",
             "status": Status.COMPLETED,
             "away_coach_code_serie_a_api": 123,
@@ -76,7 +77,8 @@ class Match(DbInputBaseModel):
 def scrape_match_data(
     db: Db | None = None,
     serie_a_website_client: SerieAWebsite | None = None,
-    sleep_time: int = 5,
+    sleep_time: int = 10,
+    max_match_days_to_scrape: int = 38,
 ) -> list[NamedTuple]:
     """Extract match data."""
     if db is None:
@@ -87,23 +89,35 @@ def scrape_match_data(
     match_days_to_import = _get_match_days_to_import(db)
 
     matches = []
-    for match_day_id, match_day_api_code in match_days_to_import:
+    for index, (match_day_id, match_day_api_code) in enumerate(
+        match_days_to_import, start=1
+    ):
+        if index > max_match_days_to_scrape:
+            LOGGER.info(
+                "Reached the maximum number of match days to scrape (%s).",
+                max_match_days_to_scrape,
+            )
+            break
 
-        LOGGER.info("Extracting matches for match day %s...", match_day_id)
+        LOGGER.info(
+            "Extracting matches for match day %s (%s)...",
+            match_day_id,
+            match_day_api_code,
+        )
         match_day_page = serie_a_website_client.get_match_day_page(match_day_api_code)
 
         for match in match_day_page["data"]:
-            matches.append(
-                api_response_to_match_object(match_day_id, match).to_namedtuple()
-            )
+            obj = api_response_to_match(match_day_id, match).to_namedtuple()
+            matches.append(obj)
 
         # Sleep to avoid overloading the website
-        time.sleep(sleep_time)
+        seconds_sleep = random.randint(sleep_time - 5, sleep_time + 5)
+        time.sleep(seconds_sleep)
 
     return matches
 
 
-def api_response_to_match_object(match_day_id: str, match: dict) -> Match:
+def api_response_to_match(match_day_id: str, match: dict) -> Match:
     """Convert API response to a match object."""
     return Match(
         match_day_id=match_day_id,
@@ -118,7 +132,7 @@ def api_response_to_match_object(match_day_id: str, match: dict) -> Match:
         home_penalty_goals=match["home_penalty_goal"],
         away_schema=match["away_schema"].replace(" ", ""),
         home_schema=match["home_schema"].replace(" ", ""),
-        duration_minutes=int(match["minutes_played"].split("'")[0]) + 1,
+        duration_minutes=_extract_minutes(match["minutes_played"]),
         date=_extract_date(match["date_time"]),
         time=match["match_hm"],
         time_zone="UTC+2",
@@ -130,6 +144,15 @@ def api_response_to_match_object(match_day_id: str, match: dict) -> Match:
         home_coach_name=match["home_coach_name"].title(),
         home_coach_surname=match["home_coach_surname"].title(),
     )
+
+
+def _extract_minutes(minutes_str: str) -> int | None:
+    if minutes_str == "":
+        return None
+    minutes = int(minutes_str.split("'")[0]) + 1
+    if minutes > 120:
+        return None
+    return minutes
 
 
 def _get_match_days_to_import(db: Db) -> list[tuple[str, int]]:
@@ -144,21 +167,24 @@ def _get_match_days_to_import(db: Db) -> list[tuple[str, int]]:
         List of tuples in the form (match_day_id, match_day_code_serie_a_api).
 
     """
-    # The two tables should always be available
-    query = """
-    SELECT
-        dmmd.match_day_id,
-        dmmd.code_serie_a_api
-    FROM dm_match_day AS dmmd
-        LEFT JOIN st_match AS st
-            ON dmmd.match_day_id = st.match_day_id
-    WHERE
-        dmmd.status = 'ongoing'
-        OR st.match_day_id IS NULL
-    ORDER BY
-        dmmd.match_day_id;
-    """
-    return db.select(query)
+    try:
+        # The two tables should always be available
+        query = """
+        SELECT
+            dmmd.match_day_id,
+            dmmd.code_serie_a_api
+        FROM dm_match_day AS dmmd
+            LEFT JOIN st_match AS st
+                ON dmmd.match_day_id = st.match_day_id
+        WHERE
+            dmmd.status = 'ongoing'
+            OR st.match_day_id IS NULL
+        ORDER BY
+            dmmd.match_day_id;
+        """
+        return db.select(query)
+    finally:
+        db.close_connection()
 
 
 def _extract_date(datetime_str: str) -> str:

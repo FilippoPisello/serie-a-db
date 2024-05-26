@@ -1,5 +1,6 @@
 """Define the classes to represent the tables in the database."""
 
+import csv
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -135,13 +136,21 @@ class StagingTable(DbTable):
             # Drop and recreate the staging table
             db.execute(self.drop_statement)
             db.execute(self.definition_statement)
+            # Need to commit as extracting external data might rely on the table
+            db.commit()
 
         data = self.extract_external_data()
 
-        self.error_if_data_incompatible(data, self.staging_attributes)
-        # New data will always overwrite the existing data on conflict
-        db.cursor.executemany(self.populate_statement, data)
-        db.commit()
+        try:
+            self.error_if_data_incompatible(data, self.staging_attributes)
+            # New data will always overwrite the existing data on conflict
+            db.cursor.executemany(self.populate_statement, data)
+            db.commit()
+        except Exception as e:
+            # If anything goes wrong, emergency save to local csv file
+            LOGGER.error("Something went wrong. Saving data to CSV file...")
+            self._save_to_csv(data)
+            raise e
 
     def _table_should_be_recreated(self, db: Db) -> bool:
         """Check if the table should be recreated."""
@@ -170,6 +179,15 @@ class StagingTable(DbTable):
             raise IncompatibleDataError(attributes, data[0]._fields)
         if data[-1]._fields != attributes:
             raise IncompatibleDataError(attributes, data[-1]._fields)
+
+    def _save_to_csv(self, data: list[NamedTuple]) -> None:
+        """Save the data to a CSV file."""
+        with open(
+            f"recovery_{self.name}.csv", "w", encoding="utf-8", newline=""
+        ) as file:
+            writer = csv.writer(file)
+            writer.writerow(data[0]._fields)
+            writer.writerows(data)
 
 
 def read_script_from_file(table_name: str, directory: Path) -> str:

@@ -1,8 +1,10 @@
 from serie_a_db import DEFINITIONS_DIR
 from serie_a_db.data_extraction.table_specific_extractors.st_match import (
     Match,
-    api_response_to_match_object,
+    api_response_to_match,
 )
+from serie_a_db.db.client import Db
+from serie_a_db.db.table import StagingTable
 from serie_a_db.sql_parsing import extract_attributes_from_create_statement
 
 
@@ -81,7 +83,7 @@ def test_raw_serie_a_api_response_should_be_converted_to_custom_object():
     }
 
     # Act
-    actual = api_response_to_match_object("S24M01", match)
+    actual = api_response_to_match("S24M01", match)
 
     # Assert
     actual.assert_equal(
@@ -120,3 +122,20 @@ def test_query_and_object_are_compatible():
     model_attr = Match.fields()
 
     assert query_attr == model_attr
+
+
+def test_udpate(db: Db):
+    db.execute("CREATE TABLE dm_match_day (match_day_id STR, code_serie_a_api INT)")
+    db.execute(
+        "INSERT INTO dm_match_day VALUES (?, ?)",
+        (Match.fake().match_day_id, 23),
+    )
+    table = StagingTable.from_file("st_match", lambda: [Match.fake().to_namedtuple()])
+
+    table.update(db)
+
+    assert db.count_rows("dm_match_day") == 1
+
+
+def test_error():
+    raise ValueError("Matchday 153497 fails")
