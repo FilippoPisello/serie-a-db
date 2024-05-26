@@ -1,5 +1,6 @@
 """Extract data to populate the dm_match_day table."""
 
+import logging
 from enum import StrEnum
 from typing import NamedTuple, Self
 
@@ -10,6 +11,8 @@ from serie_a_db.data_extraction.clients.lega_serie_a_website import SerieAWebsit
 from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
 from serie_a_db.db.client import Db
 from serie_a_db.exceptions import NoSuchTableError
+
+LOGGER = logging.getLogger(__name__)
 
 
 class Status(StrEnum):
@@ -133,6 +136,7 @@ def _scrape_match_day_data_from_the_web(
     """Scrape match day data from the web."""
     data = []
     for season_year_start, season_code in seasons:
+        LOGGER.info("Scraping match days for season %d", season_year_start)
         season_page = serie_a_website_client.get_season_page(season_code)
         for match_day in season_page["data"]:
             data.append(

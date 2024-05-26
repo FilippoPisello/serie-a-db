@@ -1,5 +1,7 @@
 """Extract data to populate the st_match table."""
 
+import logging
+import time
 from datetime import datetime
 from typing import NamedTuple, Self
 
@@ -7,12 +9,10 @@ from pydantic import Field, NonNegativeInt
 
 from serie_a_db.data_extraction.clients.lega_serie_a_website import SerieAWebsite
 from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
-from serie_a_db.data_extraction.table_specific_extractors.dm_match_day import (
-    MatchDay,
-    Status,
-)
+from serie_a_db.data_extraction.table_specific_extractors.dm_match_day import Status
 from serie_a_db.db.client import Db
-from serie_a_db.exceptions import NoSuchTableError
+
+LOGGER = logging.getLogger(__name__)
 
 
 class Match(DbInputBaseModel):
@@ -20,29 +20,31 @@ class Match(DbInputBaseModel):
 
     match_day_id: str
     match_code_serie_a_api: int
-    away_team_id: str
-    away_team_name: str
     home_team_id: str
     home_team_name: str
-    away_goals: NonNegativeInt
-    away_penalty_goals: NonNegativeInt
     home_goals: NonNegativeInt
     home_penalty_goals: NonNegativeInt
-    away_schema: str
     home_schema: str
-    duration_minutes: int = Field(ge=0, le=120)
-    date: str
-    time: str
-    status: Status
-    away_coach_code_serie_a_api: int
-    away_coach_name: str
-    away_coach_surname: str
     home_coach_code_serie_a_api: int
     home_coach_name: str
     home_coach_surname: str
+    away_team_id: str
+    away_team_name: str
+    away_goals: NonNegativeInt
+    away_penalty_goals: NonNegativeInt
+    away_schema: str
+    away_coach_code_serie_a_api: int
+    away_coach_name: str
+    away_coach_surname: str
+    status: Status
+    date: str
+    time: str
+    time_zone: str
+    duration_minutes: int = Field(ge=0, le=120)
 
     @classmethod
     def fake(cls, **kwargs) -> Self:
+        """Generate a match object with overwritable default values for all fields."""
         data = {
             "match_day_id": "S24M01",
             "match_code_serie_a_api": 123,
@@ -59,6 +61,7 @@ class Match(DbInputBaseModel):
             "duration_minutes": 90,
             "date": "2024-10-01",
             "time": "20:45",
+            "time_zone": "UTC+2",
             "status": Status.COMPLETED,
             "away_coach_code_serie_a_api": 123,
             "away_coach_name": "Baz",
@@ -67,12 +70,13 @@ class Match(DbInputBaseModel):
             "home_coach_name": "Zap",
             "home_coach_surname": "Fiz",
         } | kwargs
-        return cls(**data)
+        return cls(**data)  # type: ignore
 
 
 def scrape_match_data(
     db: Db | None = None,
     serie_a_website_client: SerieAWebsite | None = None,
+    sleep_time: int = 5,
 ) -> list[NamedTuple]:
     """Extract match data."""
     if db is None:
@@ -84,46 +88,61 @@ def scrape_match_data(
 
     matches = []
     for match_day_id, match_day_api_code in match_days_to_import:
+
+        LOGGER.info("Extracting matches for match day %s...", match_day_id)
         match_day_page = serie_a_website_client.get_match_day_page(match_day_api_code)
+
         for match in match_day_page["data"]:
             matches.append(
-                Match(
-                    match_day_id=match_day_id,
-                    match_code_serie_a_api=match["match_id"],
-                    away_team_id=match["away_team_short_name"],
-                    away_team_name=match["away_team_name"],
-                    home_team_id=match["home_team_short_name"],
-                    home_team_name=match["home_team_name"],
-                    away_goals=match["away_goal"],
-                    away_penalty_goals=match["away_penalty_goal"],
-                    home_goals=match["home_goal"],
-                    home_penalty_goals=match["home_penalty_goal"],
-                    away_schema=match["away_schema"],
-                    home_schema=match["home_schema"],
-                    duration_minutes=match["minutes_played"],
-                    # Datetime is in format 2022-08-13T16:30:00Z
-                    date=_extract_date(match["match_datetime"]),
-                    time=_extract_time(match["match_datetime"]),
-                    status=_map_status(match["match_status"]),
-                    away_coach_code_serie_a_api=match["away_coach_id"],
-                    away_coach_name=match["away_coach_name"],
-                    away_coach_surname=match["away_coach_surname"],
-                    home_coach_code_serie_a_api=match["home_coach_id"],
-                    home_coach_name=match["home_coach_name"],
-                    home_coach_surname=match["home_coach_surname"],
-                ).to_namedtuple()
+                api_response_to_match_object(match_day_id, match).to_namedtuple()
             )
+
+        # Sleep to avoid overloading the website
+        time.sleep(sleep_time)
+
     return matches
+
+
+def api_response_to_match_object(match_day_id: str, match: dict) -> Match:
+    """Convert API response to a match object."""
+    return Match(
+        match_day_id=match_day_id,
+        match_code_serie_a_api=match["match_id"],
+        away_team_id=match["away_team_short_name"],
+        away_team_name=match["away_team_name"].title(),
+        home_team_id=match["home_team_short_name"],
+        home_team_name=match["home_team_name"].title(),
+        away_goals=match["away_goal"],
+        away_penalty_goals=match["away_penalty_goal"],
+        home_goals=match["home_goal"],
+        home_penalty_goals=match["home_penalty_goal"],
+        away_schema=match["away_schema"].replace(" ", ""),
+        home_schema=match["home_schema"].replace(" ", ""),
+        duration_minutes=int(match["minutes_played"].split("'")[0]) + 1,
+        date=_extract_date(match["date_time"]),
+        time=match["match_hm"],
+        time_zone="UTC+2",
+        status=_map_status(match["match_status"]),
+        away_coach_code_serie_a_api=match["away_coach_id"],
+        away_coach_name=match["away_coach_name"].title(),
+        away_coach_surname=match["away_coach_surname"].title(),
+        home_coach_code_serie_a_api=match["home_coach_id"],
+        home_coach_name=match["home_coach_name"].title(),
+        home_coach_surname=match["home_coach_surname"].title(),
+    )
 
 
 def _get_match_days_to_import(db: Db) -> list[tuple[str, int]]:
     """Get match days to import.
 
     Args:
+    ----
         db: Database client.
 
     Returns:
+    -------
         List of tuples in the form (match_day_id, match_day_code_serie_a_api).
+
     """
     # The two tables should always be available
     query = """
@@ -145,11 +164,6 @@ def _get_match_days_to_import(db: Db) -> list[tuple[str, int]]:
 def _extract_date(datetime_str: str) -> str:
     """Extract date from datetime string."""
     return datetime.fromisoformat(datetime_str).date().isoformat()
-
-
-def _extract_time(datetime_str: str) -> str:
-    """Extract time from datetime string."""
-    return datetime.fromisoformat(datetime_str).time().isoformat()
 
 
 def _map_status(external_status: int) -> Status:
