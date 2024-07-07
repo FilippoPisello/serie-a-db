@@ -206,7 +206,8 @@ def _extract_minutes(minutes_str: str) -> int | None:
     if minutes_str == "":
         return None
     minutes = int(minutes_str.split("'")[0]) + 1
-    if minutes > 120:
+    max_minutes = 120
+    if minutes > max_minutes:
         return None
     return minutes
 
