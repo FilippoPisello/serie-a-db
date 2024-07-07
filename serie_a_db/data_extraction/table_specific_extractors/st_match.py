@@ -10,7 +10,7 @@ from pydantic import Field, NonNegativeInt, ValidationError
 
 from serie_a_db.data_extraction.clients.lega_serie_a_website import SerieAWebsite
 from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
-from serie_a_db.data_extraction.table_specific_extractors.dm_match_day import Status
+from serie_a_db.data_extraction.table_specific_extractors.st_match_day import Status
 from serie_a_db.db.client import Db
 
 LOGGER = logging.getLogger(__name__)

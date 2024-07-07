@@ -1,4 +1,4 @@
-CREATE TABLE dm_match_day_staging (
+CREATE TABLE st_match_day (
     season_code_serie_a_api STR NOT NULL,
     season_year_start INT NOT NULL CHECK (season_year_start BETWEEN 1980 AND 2050),
     code_serie_a_api INT NOT NULL,
