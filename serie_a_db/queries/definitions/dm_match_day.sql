@@ -24,7 +24,7 @@ WITH dm_match_day_preload AS (
         dmds.code_serie_a_api                         AS code_serie_a_api,
         dmds.number                                   AS number,
         dmds.status                                   AS status
-    FROM dm_match_day_staging AS dmds
+    FROM st_match_day AS dmds
         INNER JOIN dm_season AS dses
             ON (dmds.season_code_serie_a_api = dses.code_serie_a_api)
 )

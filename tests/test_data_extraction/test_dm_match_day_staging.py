@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from serie_a_db.data_extraction.table_specific_extractors.dm_match_day import (
+from serie_a_db.data_extraction.table_specific_extractors.st_match_day import (
     scrape_match_day_data,
 )
 from serie_a_db.db.client import Db

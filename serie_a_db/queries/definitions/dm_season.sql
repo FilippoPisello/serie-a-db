@@ -15,7 +15,7 @@ WITH dm_season_enriched AS (
         SUBSTR(season_year_start, 3, 2)      AS year_start_yy,
         SUBSTR(season_year_start + 1, 3, 2)  AS year_end_yy,
         GROUP_CONCAT(DISTINCT status)        AS statuses
-    FROM dm_match_day_staging
+    FROM st_match_day
     GROUP BY
         season_code_serie_a_api,
         season_year_start

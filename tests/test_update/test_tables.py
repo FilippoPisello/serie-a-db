@@ -1,4 +1,4 @@
-from serie_a_db.data_extraction.table_specific_extractors.dm_match_day import MatchDay
+from serie_a_db.data_extraction.table_specific_extractors.st_match_day import MatchDay
 from serie_a_db.db.client import Db
 from serie_a_db.db.table import StagingTable as St
 from serie_a_db.db.table import WarehouseTable as Wt
@@ -29,9 +29,7 @@ def test_dm_season_update(db: Db):
     ]
     test_schema = {
         "dm_season": Wt.from_file("dm_season"),
-        "dm_match_day_staging": St.from_file(
-            "dm_match_day_staging", lambda: match_day_data
-        ),
+        "st_match_day": St.from_file("st_match_day", lambda: match_day_data),
     }
 
     # Act
@@ -74,9 +72,7 @@ def test_dm_match_day_update(db: Db):
     ]
     test_schema = {
         "dm_season": Wt.from_file("dm_season"),
-        "dm_match_day_staging": St.from_file(
-            "dm_match_day_staging", lambda: match_day_data
-        ),
+        "st_match_day": St.from_file("st_match_day", lambda: match_day_data),
         "dm_match_day": Wt.from_file("dm_match_day"),
     }
 

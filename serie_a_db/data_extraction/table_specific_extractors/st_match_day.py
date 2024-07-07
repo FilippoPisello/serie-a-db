@@ -83,7 +83,7 @@ def _get_earliest_season_to_import(db: Db) -> int:
             SELECT
                 MIN(dms.year_start)
             FROM dm_season AS dms
-                LEFT JOIN dm_match_day_staging AS st
+                LEFT JOIN st_match_day AS st
                     ON dms.year_start = st.season_year_start
             WHERE
                 dms.status = 'ongoing' OR st.number IS NULL;
