@@ -27,3 +27,18 @@ class SerieAWebsite:
         )
         resp.raise_for_status()
         return resp.json()
+
+    @classmethod
+    def get_match_day_page(cls, match_day_api_code: int) -> dict:
+        """Get the API data for a single match day."""
+        resp = requests.get(
+            f"{cls.ROOT}/api/stats/live/match?extra_link&lang=en&match_day_id={match_day_api_code}",
+            timeout=5,
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    @classmethod
+    def get_matches(cls, match_day_api_code: int) -> list[dict]:
+        """Get the matches only API data for a single match day."""
+        return cls.get_match_day_page(match_day_api_code)["data"]
