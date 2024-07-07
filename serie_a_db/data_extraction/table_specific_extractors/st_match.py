@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 from typing import NamedTuple, Self
 
-from pydantic import Field, NonNegativeInt
+from pydantic import Field, NonNegativeInt, ValidationError
 
 from serie_a_db.data_extraction.clients.lega_serie_a_website import SerieAWebsite
 from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
@@ -77,8 +77,8 @@ class Match(DbInputBaseModel):
 def scrape_match_data(
     db: Db | None = None,
     serie_a_website_client: SerieAWebsite | None = None,
-    sleep_time: int = 10,
-    max_match_days_to_scrape: int = 38,
+    sleep_time: int = 15,
+    max_match_days_to_scrape: int = 38 * 10,
 ) -> list[NamedTuple]:
     """Extract match data."""
     if db is None:
@@ -93,28 +93,84 @@ def scrape_match_data(
         match_days_to_import, start=1
     ):
         if index > max_match_days_to_scrape:
-            LOGGER.info(
-                "Reached the maximum number of match days to scrape (%s).",
-                max_match_days_to_scrape,
-            )
+            _log_info_hit_max_matches_to_scrape(max_match_days_to_scrape)
             break
 
-        LOGGER.info(
-            "Extracting matches for match day %s (%s)...",
-            match_day_id,
-            match_day_api_code,
-        )
-        match_day_page = serie_a_website_client.get_match_day_page(match_day_api_code)
+        _log_info_match_day_being_extracted(match_day_id, match_day_api_code)
+        raw_matches = serie_a_website_client.get_matches(match_day_api_code)
 
-        for match in match_day_page["data"]:
-            obj = api_response_to_match(match_day_id, match).to_namedtuple()
-            matches.append(obj)
+        # Try getting all the matches for the match day. If one fails, stop
+        # without erroring out so that what successfully extracted so far
+        # is still imported
+        try:
+            matches.extend(_scrape_matches_for_one_match_day(raw_matches, match_day_id))
+        except ValidationError as err:
+            _log_warn_validation_error(match_day_id, err)
+            break
 
-        # Sleep to avoid overloading the website
-        seconds_sleep = random.randint(sleep_time - 5, sleep_time + 5)
-        time.sleep(seconds_sleep)
+        _sleep_not_to_overload_the_website(sleep_time)
 
     return matches
+
+
+def _get_match_days_to_import(db: Db) -> list[tuple[str, int]]:
+    """Get match days to import.
+
+    Args:
+    ----
+        db: Database client.
+
+    Returns:
+    -------
+        List of tuples in the form (match_day_id, match_day_code_serie_a_api).
+
+    """
+    try:
+        # The two tables should always be available
+        query = """
+        SELECT
+            dmmd.match_day_id,
+            dmmd.code_serie_a_api
+        FROM dm_match_day AS dmmd
+            LEFT JOIN st_match AS st
+                ON dmmd.match_day_id = st.match_day_id
+        WHERE
+            dmmd.status = 'ongoing'
+            OR (st.match_day_id IS NULL
+                AND dmmd.status = 'completed')
+        ORDER BY
+            dmmd.match_day_id;
+        """
+        return db.select(query)
+    finally:
+        db.close_connection()
+
+
+def _scrape_matches_for_one_match_day(
+    matches_data: list[dict], match_day_id: str
+) -> list[NamedTuple]:
+    parsed_matches = []
+    for match in matches_data:
+        match_patched = _apply_manual_overrides(match)
+        obj = api_response_to_match(match_day_id, match_patched).to_namedtuple()
+        parsed_matches.append(obj)
+    return parsed_matches
+
+
+def _apply_manual_overrides(match: dict) -> dict:
+    """Apply some case-specific overrides to the match data."""
+    all_overrides = {
+        201589: {
+            "away_coach_id": 296,
+            "away_coach_name": "ZDENEK",
+            "away_coach_surname": "ZEMAN",
+            "home_coach_id": 437,
+            "home_coach_name": "MASSIMO",
+            "home_coach_surname": "FICCADENTI",
+        },
+    }
+    override_for_this_match = all_overrides.get(match["match_id"], {})
+    return match | override_for_this_match
 
 
 def api_response_to_match(match_day_id: str, match: dict) -> Match:
@@ -155,38 +211,6 @@ def _extract_minutes(minutes_str: str) -> int | None:
     return minutes
 
 
-def _get_match_days_to_import(db: Db) -> list[tuple[str, int]]:
-    """Get match days to import.
-
-    Args:
-    ----
-        db: Database client.
-
-    Returns:
-    -------
-        List of tuples in the form (match_day_id, match_day_code_serie_a_api).
-
-    """
-    try:
-        # The two tables should always be available
-        query = """
-        SELECT
-            dmmd.match_day_id,
-            dmmd.code_serie_a_api
-        FROM dm_match_day AS dmmd
-            LEFT JOIN st_match AS st
-                ON dmmd.match_day_id = st.match_day_id
-        WHERE
-            dmmd.status = 'ongoing'
-            OR st.match_day_id IS NULL
-        ORDER BY
-            dmmd.match_day_id;
-        """
-        return db.select(query)
-    finally:
-        db.close_connection()
-
-
 def _extract_date(datetime_str: str) -> str:
     """Extract date from datetime string."""
     return datetime.fromisoformat(datetime_str).date().isoformat()
@@ -204,3 +228,31 @@ def _map_status(external_status: int) -> Status:
     except KeyError as err:
         msg = f"Cannot handle unknown match status {external_status}"
         raise ValueError(msg) from err
+
+
+def _sleep_not_to_overload_the_website(sleep_time: int) -> None:
+    seconds_sleep = random.randint(sleep_time - 5, sleep_time + 5)
+    time.sleep(seconds_sleep)
+
+
+def _log_info_hit_max_matches_to_scrape(max_match_days_to_scrape) -> None:
+    LOGGER.info(
+        "Reached the maximum number of match days to scrape (%s).",
+        max_match_days_to_scrape,
+    )
+
+
+def _log_info_match_day_being_extracted(match_day_id, match_day_api_code) -> None:
+    LOGGER.info(
+        "Extracting matches for match day %s (%s)...",
+        match_day_id,
+        match_day_api_code,
+    )
+
+
+def _log_warn_validation_error(match_day_id, err) -> None:
+    LOGGER.warning(
+        "Stopping the extraction at match day %s due to error: %s",
+        match_day_id,
+        err,
+    )

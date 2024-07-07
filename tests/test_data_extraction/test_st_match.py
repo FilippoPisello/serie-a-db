@@ -135,7 +135,3 @@ def test_udpate(db: Db):
     table.update(db)
 
     assert db.count_rows("dm_match_day") == 1
-
-
-def test_error():
-    raise ValueError("Matchday 153497 fails")

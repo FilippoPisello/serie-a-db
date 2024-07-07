@@ -140,6 +140,9 @@ class StagingTable(DbTable):
             db.commit()
 
         data = self.extract_external_data()
+        if not data:
+            LOGGER.info("No data to load into %s", self.name)
+            return
 
         try:
             self.error_if_data_incompatible(data, self.staging_attributes)

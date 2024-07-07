@@ -37,3 +37,8 @@ class SerieAWebsite:
         )
         resp.raise_for_status()
         return resp.json()
+
+    @classmethod
+    def get_matches(cls, match_day_api_code: int) -> list[dict]:
+        """Get the matches only API data for a single match day."""
+        return cls.get_match_day_page(match_day_api_code)["data"]

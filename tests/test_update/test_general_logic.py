@@ -26,6 +26,21 @@ def test_error_if_data_being_inserted_does_not_match_table_columns(db):
         table.update(db)
 
 
+def test_nothing_happens_if_no_data_is_inserted(db: Db):
+    # Arrange
+    table = StagingTable(
+        "dm_dummy",
+        "CREATE TABLE IF NOT EXISTS dm_dummy (dummy_name INTEGER);",
+        lambda: [],
+    )
+
+    # Act
+    table.update(db)
+
+    # Assert
+    assert db.count_rows("dm_dummy") == 0
+
+
 def test_update_is_logged_in_meta_table(db: Db, freeze_time):
     """Table updates are logged in a dedicated table."""
     # Arrange
