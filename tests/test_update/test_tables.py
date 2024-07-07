@@ -1,3 +1,4 @@
+from serie_a_db.data_extraction.table_specific_extractors.st_match import Match
 from serie_a_db.data_extraction.table_specific_extractors.st_match_day import MatchDay
 from serie_a_db.db.client import Db
 from serie_a_db.db.table import StagingTable as St
@@ -86,4 +87,33 @@ def test_dm_match_day_update(db: Db):
         ("S23M01", "S23", "S23-24 MD01", 231, 1, "completed"),
         ("S24M01", "S24", "S24-25 MD01", 241, 1, "completed"),
         ("S24M02", "S24", "S24-25 MD02", 242, 2, "ongoing"),
+    ]
+
+
+def test_dm_team_update(db: Db):
+    # Arrange
+    match_data = [
+        Match.fake(
+            home_team_id="ATA",
+            home_team_name="Atalanta",
+        ).to_namedtuple(),
+        Match.fake(
+            home_team_id="BOL",
+            home_team_name="Bologna",
+        ).to_namedtuple(),
+    ]
+    test_schema = {
+        "dm_team": Wt.from_file("dm_team"),
+        "st_match": St.from_file("st_match", lambda: match_data),
+    }
+
+    # Act
+    updater = DbUpdater(db, test_schema)
+    updater.update_table_and_upstream_dependencies(test_schema["dm_team"])
+
+    # Assert
+    assert db.count_rows("dm_team") == len(match_data)
+    assert db.get_all_rows("dm_team") == [
+        ("ATA", "Atalanta"),
+        ("BOL", "Bologna"),
     ]
