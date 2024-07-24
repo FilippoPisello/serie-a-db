@@ -117,3 +117,46 @@ def test_dm_team_update(db: Db):
         ("ATA", "Atalanta"),
         ("BOL", "Bologna"),
     ]
+
+
+def test_dm_coach_update(db: Db):
+    # Arrange
+    match1 = Match.fake(
+        home_coach_name="Massimiliano",
+        home_coach_surname="Allegri",
+        home_coach_code_serie_a_api=1,
+        away_coach_name="Luciano",
+        away_coach_surname="Spalletti",
+        away_coach_code_serie_a_api=2,
+        # Match day and home team to be provided for uniqueness of match
+        match_day_id="S24M01",
+        home_team_id="JUV",
+    ).to_namedtuple()
+    match2 = Match.fake(
+        home_coach_name="Simone",
+        home_coach_surname="Inzaghi",
+        home_coach_code_serie_a_api=3,
+        away_coach_name="Roberto",
+        away_coach_surname="D'Aversa",
+        away_coach_code_serie_a_api=4,
+        match_day_id="S24M01",
+        home_team_id="ATA",
+    ).to_namedtuple()
+
+    test_schema = {
+        "dm_coach": Wt.from_file("dm_coach"),
+        "st_match": St.from_file("st_match", lambda: [match1, match1, match2]),
+    }
+
+    # Act
+    updater = DbUpdater(db, test_schema)
+    updater.update_table_and_upstream_dependencies(test_schema["dm_coach"])
+
+    # Assert
+    assert db.count_rows("dm_coach") == 4
+    assert db.get_all_rows("dm_coach") == [
+        ("MASS-ALLE", 1, "Massimiliano", "Allegri"),
+        ("LUCI-SPAL", 2, "Luciano", "Spalletti"),
+        ("SIMO-INZA", 3, "Simone", "Inzaghi"),
+        ("ROBE-DAVE", 4, "Roberto", "D'Aversa"),
+    ]
