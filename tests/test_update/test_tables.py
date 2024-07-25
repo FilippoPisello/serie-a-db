@@ -153,7 +153,8 @@ def test_dm_coach_update(db: Db):
     updater.update_table_and_upstream_dependencies(test_schema["dm_coach"])
 
     # Assert
-    assert db.count_rows("dm_coach") == 4
+    # 2 coaches for each match
+    assert db.count_rows("dm_coach") == 4  # noqa: PLR2004
     assert db.get_all_rows("dm_coach") == [
         ("MASS-ALLE", 1, "Massimiliano", "Allegri"),
         ("LUCI-SPAL", 2, "Luciano", "Spalletti"),
