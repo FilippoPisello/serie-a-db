@@ -161,3 +161,74 @@ def test_dm_coach_update(db: Db):
         ("SIMO-INZA", 3, "Simone", "Inzaghi"),
         ("ROBE-DAVE", 4, "Roberto", "D'Aversa"),
     ]
+
+
+def test_ft_match_update(db: Db):
+    # Arrange
+    match_day_data = [
+        MatchDay.fake(
+            season_year_start=2023,
+            number=1,
+        ).to_namedtuple(),
+    ]
+    match_data = [
+        Match.fake(
+            match_day_id="S23M01",
+            match_code_serie_a_api=1,
+            home_team_id="JUV",
+            home_goals=2,
+            home_penalty_goals=0,
+            home_schema="4-3-3",
+            home_coach_name="Massimiliano",
+            home_coach_surname="Allegri",
+            away_team_id="ATA",
+            away_goals=1,
+            away_penalty_goals=0,
+            away_schema="4-4-2",
+            away_coach_name="Simone",
+            away_coach_surname="Inzaghi",
+            status="completed",
+            date="2023-08-20",
+            time="20:45:00",
+            time_zone="UTC+2",
+            duration_minutes=90,
+        ).to_namedtuple(),
+    ]
+
+    test_schema = {
+        "ft_match": Wt.from_file("ft_match"),
+        "dm_season": Wt.from_file("dm_season"),
+        "dm_match_day": Wt.from_file("dm_match_day"),
+        "dm_team": Wt.from_file("dm_team"),
+        "dm_coach": Wt.from_file("dm_coach"),
+        "st_match_day": St.from_file("st_match_day", lambda: match_day_data),
+        "st_match": St.from_file("st_match", lambda: match_data),
+    }
+
+    # Act
+    updater = DbUpdater(db, test_schema)
+    updater.update_table_and_upstream_dependencies(test_schema["ft_match"])
+
+    # Assert
+    assert db.count_rows("ft_match") == 1
+    assert db.get_all_rows("ft_match") == [
+        (
+            "S23M01",
+            "JUV",
+            "ATA",
+            "MASS-ALLE",
+            "SIMO-INZA",
+            1,
+            2,
+            0,
+            "4-3-3",
+            1,
+            0,
+            "4-4-2",
+            "completed",
+            "2023-08-20",
+            "20:45:00",
+            "UTC+2",
+            90,
+        ),
+    ]
