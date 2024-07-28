@@ -21,10 +21,9 @@ CREATE TABLE st_match (
     date STR NOT NULL CHECK (date = strftime('%Y-%m-%d', date)),
     time STR NOT NULL CHECK (time = strftime('%H:%M:%S', time)),
     time_zone STR NOT NULL CHECK (time_zone IN ("UTC+2")),
-    duration_minutes INT CHECK (duration_minutes BETWEEN 0 AND 120),
+    duration_minutes INT CHECK (
+        duration_minutes BETWEEN 0 AND 120
+    ),
     PRIMARY KEY (match_day_id, home_team_id),
-    FOREIGN KEY (match_day_id)
-        REFERENCES dm_match_day (match_day_id)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT
+    FOREIGN KEY (match_day_id) REFERENCES dm_match_day (match_day_id) ON UPDATE CASCADE ON DELETE RESTRICT
 );

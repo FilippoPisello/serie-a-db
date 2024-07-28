@@ -97,14 +97,13 @@ def extract_attributes_from_create_statement(create_statement: str) -> tuple[str
         x[0].rstrip(",") for x in [col.split() for col in col_definition_clauses]
     )
     # Remove unwanted values like PRIMARY KEY, CHECK, etc.
+    to_ignore = ("PRIMARY", "CHECK", "FOREIGN", "REFERENCES", "ON", ")")
     columns = tuple(
-        col
-        for col in columns_and_ending_clauses
-        if col.upper() not in ("PRIMARY", "CHECK", "FOREIGN", "REFERENCES", "ON")
+        col for col in columns_and_ending_clauses if col.upper() not in to_ignore
     )
     if not columns:
         raise ColumnsNotFoundError(create_statement)
-    return columns
+    return tuple(dict.fromkeys(columns))
 
 
 def derive_drop_table_statement(table_name: str) -> str:

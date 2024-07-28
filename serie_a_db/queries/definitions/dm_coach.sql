@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS dm_coach (
     surname STR NOT NULL
 );
 
+
 WITH dm_coach_preload AS (
     SELECT DISTINCT home_coach_code_serie_a_api AS code_serie_a_api,
         home_coach_name AS name,
