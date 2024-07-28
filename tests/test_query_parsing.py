@@ -176,12 +176,22 @@ class TestDependenciesDetection:
                 );""",
             ("note", "date"),
         ),
-        (  # Multiple columns with second column having a CHECK clause
+        (  # Multiple columns with second having a CHECK clause
             """CREATE TABLE IF NOT EXISTS dm_table (
                     note,
                     date CHECK (date IN ('a', 'b'))
                 );""",
             ("note", "date"),
+        ),
+        (  # Multiple columns with second having a CHECK clause on multiple lines
+            """CREATE TABLE IF NOT EXISTS dm_table (
+                    note,
+                    date,
+                    duration_minutes INT CHECK (
+                        duration_minutes BETWEEN 0 AND 120
+                    )
+                );""",
+            ("note", "date", "duration_minutes"),
         ),
         (  # Multiple columns ending with a CHECK clause
             """CREATE TABLE IF NOT EXISTS dm_table (

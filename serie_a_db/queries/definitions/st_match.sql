@@ -17,7 +17,7 @@ CREATE TABLE st_match (
     away_coach_code_serie_a_api INT NOT NULL,
     away_coach_name STR NOT NULL,
     away_coach_surname STR NOT NULL,
-    STATUS STR NOT NULL CHECK (STATUS IN ("completed", "ongoing", "upcoming")),
+    status STR NOT NULL CHECK (status IN ("completed", "ongoing", "upcoming")),
     date STR NOT NULL CHECK (date = strftime('%Y-%m-%d', date)),
     time STR NOT NULL CHECK (time = strftime('%H:%M:%S', time)),
     time_zone STR NOT NULL CHECK (time_zone IN ("UTC+2")),

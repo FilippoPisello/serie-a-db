@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS dm_match_day (
     number INT NOT NULL CHECK (
         number BETWEEN 1 AND 38
     ),
-    STATUS STR CHECK (STATUS IN ("completed", "ongoing", "upcoming")),
+    status STR CHECK (status IN ("completed", "ongoing", "upcoming")),
     FOREIGN KEY (season_id) REFERENCES dm_season (season_id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
@@ -17,7 +17,7 @@ WITH dm_match_day_preload AS (
         dses.display_name || ' MD' || SUBSTR('0' || dmds.number, -2) AS display_name,
         dmds.code_serie_a_api AS code_serie_a_api,
         dmds.number AS number,
-        dmds.status AS STATUS
+        dmds.status AS status
     FROM st_match_day AS dmds
         INNER JOIN dm_season AS dses ON (
             dmds.season_code_serie_a_api = dses.code_serie_a_api
@@ -29,7 +29,7 @@ SELECT match_day_id,
     display_name,
     code_serie_a_api,
     number,
-    STATUS
+    status
 FROM dm_match_day_preload
 WHERE TRUE ON CONFLICT (match_day_id) DO
 UPDATE
@@ -37,4 +37,4 @@ SET season_id = EXCLUDED.season_id,
     display_name = EXCLUDED.display_name,
     code_serie_a_api = EXCLUDED.code_serie_a_api,
     number = EXCLUDED.number,
-    STATUS = EXCLUDED.status;
+    status = EXCLUDED.status;

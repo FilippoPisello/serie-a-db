@@ -7,6 +7,6 @@ CREATE TABLE st_match_day (
     number INT NOT NULL CHECK (
         number BETWEEN 1 AND 38
     ),
-    STATUS STR NOT NULL CHECK (STATUS IN ("completed", "ongoing", "upcoming")),
+    status STR NOT NULL CHECK (status IN ("completed", "ongoing", "upcoming")),
     PRIMARY KEY (season_year_start, number)
 );
