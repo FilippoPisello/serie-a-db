@@ -4,4 +4,5 @@ CREATE TABLE st_match_day (
     code_serie_a_api INT NOT NULL,
     number INT NOT NULL CHECK (number BETWEEN 1 AND 38),
     status STR NOT NULL CHECK (status IN ("completed", "ongoing", "upcoming"))
+    PRIMARY KEY (season_year_start, number)
 );
