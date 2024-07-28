@@ -1,6 +1,7 @@
 DROP TABLE IF EXISTS dm_parameter;
 
+
 CREATE TABLE dm_parameter (
-    key STR PRIMARY KEY,
+    KEY STR PRIMARY KEY,
     value INT NOT NULL
 );
