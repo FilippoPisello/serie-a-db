@@ -4,6 +4,7 @@ from enum import StrEnum
 from time import time
 from typing import NamedTuple
 
+from bs4 import BeautifulSoup, Tag
 from pydantic import BaseModel, Field, NonNegativeInt, ValidationError
 
 from serie_a_db.data_extraction.clients.fantacalcio_punto_it_website import (
@@ -11,6 +12,7 @@ from serie_a_db.data_extraction.clients.fantacalcio_punto_it_website import (
 )
 from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
 from serie_a_db.db.client import Db
+from serie_a_db.utils import strip_whitespaces_and_newlines
 
 LOGGER = logging.getLogger(__name__)
 
@@ -42,7 +44,10 @@ class PlayerMatch(DbInputBaseModel):
     penalties_missed: NonNegativeInt
     penalties_saved: NonNegativeInt
     assists: NonNegativeInt
-    man_of_the_match: bool
+    yellow_card: bool
+    red_card: bool
+    subbed_in: bool
+    subbed_out: bool
 
 
 def scrape_player_match_data(
@@ -91,7 +96,81 @@ def scrape_player_match_data(
 def _get_match_days_to_import(db: Db) -> list[tuple[int, int, str]]: ...
 
 
-def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple]: ...
+def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple]:
+    soup = BeautifulSoup(grades_page, "html.parser")
+    grades_table = soup.find("table", attrs={"class": "grades-table"})
+    team_tables = grades_table.find_all("li", attrs={"class": "team-table"})
+
+    output = []
+
+    for team in team_tables:
+        head = team.find("thead")
+        team_name = head.find("a", attrs={"class": "team-name team-link"}).text
+
+        body = team.find("tbody")
+        for player in body.find_all("tr"):
+            ids, grades, bonuses = player.find_all("td")
+
+            role = ids.find("span", attrs={"class": "role"})["data-value"].upper()
+            name = ids.text
+            url = ids.find("a", attrs={"class": "player-name player-link"})["href"]
+            code = int(url.split("/")[-2])
+            subbed_in = "Icona subentrato" in str(ids)
+            subbed_out = "Icona sostituito" in str(ids)
+
+            website, ita, stats = grades.find_all("div", attrs={"class": "pill"})
+            website_grade, website_fanta_grade = _parse_grades(website)
+            ita_grade, ita_fanta_grade = _parse_grades(ita)
+            stats_grade, stats_fanta_grade = _parse_grades(stats)
+            yellow_card = "yellow-card" in str(grades)
+            red_card = "red-card" in str(grades)
+
+            goals_scored = _extract_bonus(bonuses, "Gol segnati")
+            goals_conceded = _extract_bonus(bonuses, "Gol subiti")
+            own_goals = _extract_bonus(bonuses, "Autoreti")
+            penalties_scored = _extract_bonus(bonuses, "Rigori segnati")
+            penalties_missed = _extract_bonus(bonuses, "Rigori sbagliati")
+            penalties_saved = _extract_bonus(bonuses, "Rigori parati")
+            assists = _extract_bonus(bonuses, "Assist")
+
+            output.append(
+                PlayerMatch(
+                    match_day_id=match_day_id,
+                    team_name=strip_whitespaces_and_newlines(team_name),
+                    name=strip_whitespaces_and_newlines(name),
+                    code=code,
+                    role=PlayerRole(role),
+                    fantacalcio_punto_it_grade=website_grade,
+                    fantacalcio_punto_it_fanta_grade=website_fanta_grade,
+                    italia_grade=ita_grade,
+                    italia_fanta_grade=ita_fanta_grade,
+                    statistical_grade=stats_grade,
+                    statistical_fanta_grade=stats_fanta_grade,
+                    goals_scored=goals_scored,
+                    goals_conceded=goals_conceded,
+                    own_goals=own_goals,
+                    penalties_scored=penalties_scored,
+                    penalties_missed=penalties_missed,
+                    penalties_saved=penalties_saved,
+                    assists=assists,
+                    yellow_card=yellow_card,
+                    red_card=red_card,
+                    subbed_in=subbed_in,
+                    subbed_out=subbed_out,
+                ).to_namedtuple()
+            )
+    return output
+
+
+def _parse_grades(pill: Tag) -> tuple[float, float]:
+    grade = pill.find("span", attrs={"class": "player-grade"})["data-value"]
+    fanta_grade = pill.find("span", attrs={"class": "player-fanta-grade"})["data-value"]
+    return float(grade.replace(",", ".")), float(fanta_grade.replace(",", "."))
+
+
+def _extract_bonus(bonus: Tag, bonus_name: str) -> int:
+    bonus_value = bonus.find("span", attrs={"title": bonus_name})
+    return int(bonus_value["data-value"])
 
 
 def _sleep_not_to_overload_the_website(sleep_time: int) -> None:

@@ -35,6 +35,48 @@ def test_match_day_parsing_with_one_player():
             penalties_missed=0,
             penalties_saved=0,
             assists=0,
-            man_of_the_match=False,
+            yellow_card=False,
+            red_card=False,
+            subbed_in=False,
+            subbed_out=False,
         ).to_namedtuple()
     ]
+
+
+def test_match_day_parsing_with_two_players_from_the_same_team():
+    # Arrange
+    page = EXTRACTION_TEST_DATA_DIR / "fantacalcio_punto_it/two_players_same_team.html"
+    a_matchday_id = "2023"
+
+    # Act
+    data = parse_match_day_page(page.read_text(), a_matchday_id)
+
+    # Assert
+    assert len(data) == 2
+    assert (
+        data[1]
+        == PlayerMatch(
+            match_day_id=a_matchday_id,
+            team_name="Atalanta",
+            name="Zappacosta",
+            code=554,
+            role=PlayerRole.DEFENDER,
+            fantacalcio_punto_it_grade=6.5,
+            fantacalcio_punto_it_fanta_grade=6.5,
+            italia_grade=6.5,
+            italia_fanta_grade=6.5,
+            statistical_grade=6.5,
+            statistical_fanta_grade=6.5,
+            goals_scored=1,
+            goals_conceded=0,
+            own_goals=0,
+            penalties_scored=0,
+            penalties_missed=0,
+            penalties_saved=0,
+            assists=0,
+            yellow_card=True,
+            red_card=False,
+            subbed_in=False,
+            subbed_out=True,
+        ).to_namedtuple()
+    )
