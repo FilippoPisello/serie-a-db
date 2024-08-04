@@ -111,7 +111,7 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
         for player in body.find_all("tr"):
             ids, grades, bonuses = player.find_all("td")
 
-            role = ids.find("span", attrs={"class": "role"})["data-value"].upper()
+            role = ids.find("span", attrs={"class": "role"})["data-value"]
             name = ids.text
             url = ids.find("a", attrs={"class": "player-name player-link"})["href"]
             code = int(url.split("/")[-2])
@@ -139,7 +139,7 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
                     team_name=strip_whitespaces_and_newlines(team_name),
                     name=strip_whitespaces_and_newlines(name),
                     code=code,
-                    role=PlayerRole(role),
+                    role=role.upper().replace(".", ""),
                     fantacalcio_punto_it_grade=website_grade,
                     fantacalcio_punto_it_fanta_grade=website_fanta_grade,
                     italia_grade=ita_grade,
