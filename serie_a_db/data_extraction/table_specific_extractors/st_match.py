@@ -117,11 +117,9 @@ def _get_match_days_to_import(db: Db) -> list[tuple[str, int]]:
     """Get match days to import.
 
     Args:
-    ----
         db: Database client.
 
     Returns:
-    -------
         List of tuples in the form (match_day_id, match_day_code_serie_a_api).
 
     """

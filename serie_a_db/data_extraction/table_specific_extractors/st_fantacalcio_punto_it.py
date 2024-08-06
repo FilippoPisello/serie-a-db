@@ -5,7 +5,7 @@ from time import time
 from typing import NamedTuple
 
 from bs4 import BeautifulSoup, Tag
-from pydantic import BaseModel, Field, NonNegativeInt, ValidationError
+from pydantic import NonNegativeInt, ValidationError
 
 from serie_a_db.data_extraction.clients.fantacalcio_punto_it_website import (
     FantacalcioPuntoItWebsite,
@@ -18,11 +18,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 class PlayerRole(StrEnum):
-    GOALKEEPER = "P"
+    GOALKEEPER = "G"
     DEFENDER = "D"
-    MIDFIELDER = "C"
-    STRIKER = "A"
-    COACH = "ALL"
+    MIDFIELDER = "M"
+    ATTACKER = "A"
+    COACH = "C"
 
 
 class PlayerMatch(DbInputBaseModel):
@@ -53,7 +53,7 @@ class PlayerMatch(DbInputBaseModel):
 def scrape_player_match_data(
     db: Db | None = None,
     website_client: FantacalcioPuntoItWebsite | None = None,
-    sleep_time: int = 15,
+    sleep_time: int = 30,
     max_match_days_to_scrape: int = 38 * 10,
 ) -> list[NamedTuple]:
     """Extract data about players performance in a match."""
@@ -93,7 +93,26 @@ def scrape_player_match_data(
     return player_matches
 
 
-def _get_match_days_to_import(db: Db) -> list[tuple[int, int, str]]: ...
+def _get_match_days_to_import(db: Db) -> list[tuple[int, int, str]]:
+    try:
+        query = """
+        SELECT
+            dmmd.season_year_start,
+            dmm.number,
+            dmmd.match_day_id
+        FROM dm_match_day AS dmmd
+            LEFT JOIN st_fantacalcio_punto_it AS st
+                ON dmmd.match_day_id = st.match_day_id
+        GROUP BY dmmd.match_day_id
+        HAVING IFNULL(COUNT(DISTINCT st.team_name), 0) < 20
+            OR IFNULL(COUNT(DISTINCT st.code), 0) < (20 * 12)
+        ORDER BY
+            dmmd.season_year_start DESC,
+            dmm.number
+        """
+        return db.select(query)
+    finally:
+        db.close_connection()
 
 
 def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple]:
@@ -139,7 +158,7 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
                     team_name=strip_whitespaces_and_newlines(team_name),
                     name=strip_whitespaces_and_newlines(name),
                     code=code,
-                    role=role.upper().replace(".", ""),
+                    role=_translate_role(role),
                     fantacalcio_punto_it_grade=website_grade,
                     fantacalcio_punto_it_fanta_grade=website_fanta_grade,
                     italia_grade=ita_grade,
@@ -171,6 +190,17 @@ def _parse_grades(pill: Tag) -> tuple[float, float]:
 def _extract_bonus(bonus: Tag, bonus_name: str) -> int:
     bonus_value = bonus.find("span", attrs={"title": bonus_name})
     return int(bonus_value["data-value"])
+
+
+def _translate_role(role: str) -> PlayerRole:
+    _map = {
+        "p": PlayerRole.GOALKEEPER,
+        "d": PlayerRole.DEFENDER,
+        "c": PlayerRole.MIDFIELDER,
+        "a": PlayerRole.ATTACKER,
+        "all.": PlayerRole.COACH,
+    }
+    return _map[role.lower()]
 
 
 def _sleep_not_to_overload_the_website(sleep_time: int) -> None:
