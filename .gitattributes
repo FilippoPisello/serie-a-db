@@ -1,4 +1,4 @@
 # Ignore test data for linguistic stats
 tests/*.html linguist-vendored
-tests/test_data_extraction/test_data/fantacalcio_punto_it/*
+tests/test_data_extraction/test_data/fantacalcio_punto_it/* linguist-vendored
 */test_data/* linguist-vendored
