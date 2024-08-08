@@ -5,19 +5,20 @@ from serie_a_db.data_extraction.table_specific_extractors.st_fantacalcio_punto_i
 )
 from tests.test_data_extraction import EXTRACTION_TEST_DATA_DIR
 
+A_MATCHDAY_ID = "2023"
+
 
 def test_match_day_parsing_with_one_player():
     # Arrange
     page = EXTRACTION_TEST_DATA_DIR / "fantacalcio_punto_it/one_player.html"
-    a_matchday_id = "2023"
 
     # Act
-    data = parse_match_day_page(page.read_text(), a_matchday_id)
+    data = parse_match_day_page(page.read_text(), A_MATCHDAY_ID)
 
     # Assert
     assert data == [
         PlayerMatch(
-            match_day_id=a_matchday_id,
+            match_day_id=A_MATCHDAY_ID,
             team_name="Atalanta",
             name="Musso",
             code=2792,
@@ -46,17 +47,17 @@ def test_match_day_parsing_with_one_player():
 def test_match_day_parsing_with_two_players_from_the_same_team():
     # Arrange
     page = EXTRACTION_TEST_DATA_DIR / "fantacalcio_punto_it/two_players_same_team.html"
-    a_matchday_id = "2023"
+    expected_players_number = 2
 
     # Act
-    data = parse_match_day_page(page.read_text(), a_matchday_id)
+    data = parse_match_day_page(page.read_text(), A_MATCHDAY_ID)
 
     # Assert
-    assert len(data) == 2
+    assert len(data) == expected_players_number
     assert (
         data[1]
         == PlayerMatch(
-            match_day_id=a_matchday_id,
+            match_day_id=A_MATCHDAY_ID,
             team_name="Atalanta",
             name="Zappacosta",
             code=554,
@@ -88,17 +89,17 @@ def test_match_day_parsing_with_two_players_from_different_teams():
         EXTRACTION_TEST_DATA_DIR
         / "fantacalcio_punto_it/two_players_different_teams.html"
     )
-    a_matchday_id = "2023"
+    expected_players_number = 2
 
     # Act
-    data = parse_match_day_page(page.read_text(), a_matchday_id)
+    data = parse_match_day_page(page.read_text(), A_MATCHDAY_ID)
 
     # Assert
-    assert len(data) == 2
+    assert len(data) == expected_players_number
     assert (
         data[1]
         == PlayerMatch(
-            match_day_id=a_matchday_id,
+            match_day_id=A_MATCHDAY_ID,
             team_name="Bologna",
             name="Skorupski",
             code=133,

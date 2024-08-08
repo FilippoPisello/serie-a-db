@@ -25,3 +25,6 @@ ignore = [
 "*/__init__.py" = [
     "F401", # unused import
 ]
+
+[tool.ruff]
+line-length = 90

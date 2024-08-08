@@ -3,7 +3,7 @@ CREATE TABLE st_fantacalcio_punto_it (
     team_name STR NOT NULL,
     name STR NOT NULL,
     code INT NOT NULL,
-    role STR NOT NULL CHECK (role IN ("G", "D", "M", "A", "C")),
+    role STR NOT NULL CHECK (role IN ("G", "D", "M", "A")),
     fantacalcio_punto_it_grade FLOAT NOT NULL,
     fantacalcio_punto_it_fanta_grade FLOAT NOT NULL,
     italia_grade FLOAT NOT NULL,

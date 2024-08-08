@@ -149,6 +149,7 @@ class StagingTable(DbTable):
             # New data will always overwrite the existing data on conflict
             db.cursor.executemany(self.populate_statement, data)
             db.commit()
+            LOGGER.info("%s records inserted into %s", len(data), self.name)
         except Exception as e:
             # If anything goes wrong, emergency save to local csv file
             LOGGER.error("Something went wrong. Saving data to CSV file...")

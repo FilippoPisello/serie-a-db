@@ -1,11 +1,13 @@
+"""Logic to extract data from the website fantacalcio.it."""
+
 import logging
 import random
+import time
 from enum import StrEnum
-from time import time
 from typing import NamedTuple
 
 from bs4 import BeautifulSoup, Tag
-from pydantic import NonNegativeInt, ValidationError
+from pydantic import NonNegativeInt
 
 from serie_a_db.data_extraction.clients.fantacalcio_punto_it_website import (
     FantacalcioPuntoItWebsite,
@@ -18,14 +20,17 @@ LOGGER = logging.getLogger(__name__)
 
 
 class PlayerRole(StrEnum):
+    """The available roles for a player."""
+
     GOALKEEPER = "G"
     DEFENDER = "D"
     MIDFIELDER = "M"
     ATTACKER = "A"
-    COACH = "C"
 
 
 class PlayerMatch(DbInputBaseModel):
+    """Info about the performance of a player in a match."""
+
     match_day_id: str
     team_name: str
     name: str
@@ -54,7 +59,7 @@ def scrape_player_match_data(
     db: Db | None = None,
     website_client: FantacalcioPuntoItWebsite | None = None,
     sleep_time: int = 30,
-    max_match_days_to_scrape: int = 38 * 10,
+    max_match_days_to_scrape: int = 37,
 ) -> list[NamedTuple]:
     """Extract data about players performance in a match."""
     if db is None:
@@ -84,8 +89,8 @@ def scrape_player_match_data(
             player_matches.extend(
                 parse_match_day_page(match_day_results_page, match_day_id)
             )
-        except ValidationError as err:
-            _log_warn_validation_error(match_day_id, err)
+        except ValueError as err:
+            _log_fatal_error(match_day_id, err)
             break
 
         _sleep_not_to_overload_the_website(sleep_time)
@@ -97,18 +102,21 @@ def _get_match_days_to_import(db: Db) -> list[tuple[int, int, str]]:
     try:
         query = """
         SELECT
-            dmmd.season_year_start,
-            dmm.number,
+            dms.year_start,
+            dmmd.number,
             dmmd.match_day_id
         FROM dm_match_day AS dmmd
-            LEFT JOIN st_fantacalcio_punto_it AS st
-                ON dmmd.match_day_id = st.match_day_id
+            INNER JOIN dm_season AS dms ON dmmd.season_id = dms.season_id
+            LEFT JOIN st_fantacalcio_punto_it AS st ON dmmd.match_day_id = st.match_day_id
+        WHERE
+            dmmd.status = 'completed'
+            -- Data on the website starts from season 2015/16
+            AND dms.year_start >= 2015
         GROUP BY dmmd.match_day_id
         HAVING IFNULL(COUNT(DISTINCT st.team_name), 0) < 20
             OR IFNULL(COUNT(DISTINCT st.code), 0) < (20 * 12)
-        ORDER BY
-            dmmd.season_year_start DESC,
-            dmm.number
+        ORDER BY dms.year_start DESC,
+            dmmd.number
         """
         return db.select(query)
     finally:
@@ -116,9 +124,9 @@ def _get_match_days_to_import(db: Db) -> list[tuple[int, int, str]]:
 
 
 def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple]:
+    """Parse the page of a match day to extract a list of player matches."""
     soup = BeautifulSoup(grades_page, "html.parser")
-    grades_table = soup.find("table", attrs={"class": "grades-table"})
-    team_tables = grades_table.find_all("li", attrs={"class": "team-table"})
+    team_tables = soup.find_all("li", attrs={"class": "team-table"})
 
     output = []
 
@@ -131,6 +139,10 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
             ids, grades, bonuses = player.find_all("td")
 
             role = ids.find("span", attrs={"class": "role"})["data-value"]
+            # No need to extract the coach
+            if role == "all":
+                continue
+
             name = ids.text
             url = ids.find("a", attrs={"class": "player-name player-link"})["href"]
             code = int(url.split("/")[-2])
@@ -178,18 +190,20 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
                     subbed_out=subbed_out,
                 ).to_namedtuple()
             )
+    if not output:
+        raise ValueError("No player match was found in the page.")
     return output
 
 
 def _parse_grades(pill: Tag) -> tuple[float, float]:
-    grade = pill.find("span", attrs={"class": "player-grade"})["data-value"]
-    fanta_grade = pill.find("span", attrs={"class": "player-fanta-grade"})["data-value"]
-    return float(grade.replace(",", ".")), float(fanta_grade.replace(",", "."))
+    grade = pill.find("span", attrs={"class": "player-grade"})["data-value"]  # type: ignore
+    fanta_grade = pill.find("span", attrs={"class": "player-fanta-grade"})["data-value"]  # type: ignore
+    return float(grade.replace(",", ".")), float(fanta_grade.replace(",", "."))  # type: ignore
 
 
 def _extract_bonus(bonus: Tag, bonus_name: str) -> int:
     bonus_value = bonus.find("span", attrs={"title": bonus_name})
-    return int(bonus_value["data-value"])
+    return int(bonus_value["data-value"])  # type: ignore
 
 
 def _translate_role(role: str) -> PlayerRole:
@@ -198,7 +212,6 @@ def _translate_role(role: str) -> PlayerRole:
         "d": PlayerRole.DEFENDER,
         "c": PlayerRole.MIDFIELDER,
         "a": PlayerRole.ATTACKER,
-        "all.": PlayerRole.COACH,
     }
     return _map[role.lower()]
 
@@ -219,7 +232,7 @@ def _log_info_match_day_being_extracted(match_day_id: str) -> None:
     LOGGER.info("Extracting matches for match day %s...", match_day_id)
 
 
-def _log_warn_validation_error(match_day_id, err) -> None:
+def _log_fatal_error(match_day_id, err) -> None:
     LOGGER.warning(
         "Stopping the extraction at match day %s due to error: %s",
         match_day_id,
