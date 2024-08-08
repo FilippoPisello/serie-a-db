@@ -69,6 +69,8 @@ def scrape_match_day_data(
     all_seasons = _scape_seasons(serie_a_website_client)
 
     earliest_season = _get_earliest_season_to_import(db)
+    if earliest_season is None:
+        return []
     relevant_seasons = _filter_seasons(all_seasons, earliest_season)
 
     return _scrape_match_day_data_from_the_web(serie_a_website_client, relevant_seasons)
