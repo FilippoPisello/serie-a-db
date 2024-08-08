@@ -107,7 +107,7 @@ def _get_match_days_to_import(db: Db) -> list[tuple[int, int, str]]:
             dmmd.match_day_id
         FROM dm_match_day AS dmmd
             INNER JOIN dm_season AS dms ON dmmd.season_id = dms.season_id
-            LEFT JOIN st_fantacalcio_punto_it AS st ON dmmd.match_day_id = st.match_day_id
+            LEFT JOIN st_fpi_player_match AS st ON dmmd.match_day_id = st.match_day_id
         WHERE
             dmmd.status = 'completed'
             -- Data on the website starts from season 2015/16

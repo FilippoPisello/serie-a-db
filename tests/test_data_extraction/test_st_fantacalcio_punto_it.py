@@ -1,4 +1,4 @@
-from serie_a_db.data_extraction.table_specific_extractors.st_fantacalcio_punto_it import (
+from serie_a_db.data_extraction.table_specific_extractors.st_fpi_player_match import (
     PlayerMatch,
     PlayerRole,
     parse_match_day_page,

@@ -1,4 +1,4 @@
-CREATE TABLE st_fantacalcio_punto_it (
+CREATE TABLE st_fpi_player_match (
     match_day_id STR NOT NULL CHECK (LENGTH(match_day_id) = 6),
     team_name STR NOT NULL,
     name STR NOT NULL,
