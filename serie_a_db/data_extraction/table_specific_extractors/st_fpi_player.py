@@ -88,6 +88,9 @@ def _get_seasons_to_import(db: Db) -> list[tuple[int, str]]:
                 OR st.season_id IS NULL)
             -- Data on the website starts from season 2015/16
             AND dms.year_start >= 2015
+        ORDER BY
+            -- Start from the latest season
+            dms.year_start DESC
         """
         return db.select(query)
     finally:
@@ -101,9 +104,9 @@ def parse_players_page(players_page: str, season_id: str) -> list[NamedTuple]:
     output = []
     for player in soup.find_all("tr", attrs={"class": "player-row"}):
         role = player.find("span", attrs={"class": "role"})["data-value"]
-        code = player.find("a", attrs={"class": "player-name player-link"})[
-            "href"
-        ].split("/")[-1]
+        code = FantacalcioPuntoItWebsite.strip_player_id_from_url(
+            player.find("a", attrs={"class": "player-name player-link"})["href"]
+        )
         name = player.find("th", attrs={"class": "player-name"}).text
         team = player.find("td", attrs={"class": "player-team"}).text
         price_initial = player.find(
@@ -136,5 +139,5 @@ def _log_info_hit_max_seasons_to_scrape(max_match_days_to_scrape) -> None:
     )
 
 
-def _log_info_season_being_extracted(match_day_id: str) -> None:
-    LOGGER.info("Extracting matches for match day %s...", match_day_id)
+def _log_info_season_being_extracted(season_id: str) -> None:
+    LOGGER.info("Extracting matches for season %s...", season_id)

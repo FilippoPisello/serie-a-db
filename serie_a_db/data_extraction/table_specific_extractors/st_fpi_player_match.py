@@ -52,7 +52,7 @@ def scrape_player_match_data(
     db: Db | None = None,
     website_client: FantacalcioPuntoItWebsite | None = None,
     sleep_time: int = 30,
-    max_match_days_to_scrape: int = 37,
+    max_match_days_to_scrape: int = 18,
 ) -> list[NamedTuple]:
     """Extract data about players performance in a match."""
     if db is None:
@@ -138,7 +138,7 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
 
             name = ids.text
             url = ids.find("a", attrs={"class": "player-name player-link"})["href"]
-            code = int(url.split("/")[-2])
+            code = FantacalcioPuntoItWebsite.strip_player_id_from_url(url)
             subbed_in = "Icona subentrato" in str(ids)
             subbed_out = "Icona sostituito" in str(ids)
 

@@ -1,3 +1,6 @@
+from serie_a_db.data_extraction.clients.fantacalcio_punto_it_website import (
+    FantacalcioPuntoItWebsite,
+)
 from serie_a_db.data_extraction.table_specific_extractors.shared_definitions import (
     PlayerRole,
 )
@@ -31,3 +34,15 @@ def test_player_parsing_with_one_player(freeze_time):
             price_current=41,
         ).to_namedtuple()
     ]
+
+
+class TestCodeExtractionFromUrl:
+    BASE_URL = "https://www.fantacalcio.it/serie-a/squadre/inter"
+
+    def test_season_in_the_url_should_be_ignored(self):
+        url = self.BASE_URL + "/2764/2023-24"
+        assert FantacalcioPuntoItWebsite.strip_player_id_from_url(url) == "2764"
+
+    def test_code_as_the_last_part_should_be_extracted(self):
+        url = self.BASE_URL + "/2764"
+        assert FantacalcioPuntoItWebsite.strip_player_id_from_url(url) == "2764"
