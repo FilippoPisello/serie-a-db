@@ -18,9 +18,12 @@ def in_memory_db():
         db.close_connection()
 
 
+DEFAULT_FROZEN_TIME = datetime(2024, 1, 1, 12, 0, 0)
+
+
 @pytest.fixture()
 def freeze_time():
     """Freeze time to 2024-01-01 12:00:00."""
-    utils.FREEZE_TIME_TO = datetime(2024, 1, 1, 12, 0, 0)
+    utils.FREEZE_TIME_TO = DEFAULT_FROZEN_TIME
     yield
     utils.FREEZE_TIME_TO = None
