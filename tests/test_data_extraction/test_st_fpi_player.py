@@ -38,11 +38,12 @@ def test_player_parsing_with_one_player(freeze_time):
 
 class TestCodeExtractionFromUrl:
     BASE_URL = "https://www.fantacalcio.it/serie-a/squadre/inter"
+    ID = 2764
 
     def test_season_in_the_url_should_be_ignored(self):
-        url = self.BASE_URL + "/2764/2023-24"
-        assert FantacalcioPuntoItWebsite.strip_player_id_from_url(url) == "2764"
+        url = self.BASE_URL + f"/{self.ID}/2023-24"
+        assert FantacalcioPuntoItWebsite.strip_player_id_from_url(url) == self.ID
 
     def test_code_as_the_last_part_should_be_extracted(self):
-        url = self.BASE_URL + "/2764"
-        assert FantacalcioPuntoItWebsite.strip_player_id_from_url(url) == "2764"
+        url = self.BASE_URL + f"/{self.ID}"
+        assert FantacalcioPuntoItWebsite.strip_player_id_from_url(url) == self.ID

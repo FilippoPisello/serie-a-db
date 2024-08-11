@@ -34,11 +34,11 @@ class FantacalcioPuntoItWebsite:
         return f"{season_year_start}-{str(season_year_start + 1)[2:]}"
 
     @staticmethod
-    def strip_player_id_from_url(player_url: str) -> str:
+    def strip_player_id_from_url(player_url: str) -> int:
         """Get the player ID from the player URL."""
         # If url finishes like /YYYY-YY then the player ID is the penultimate part
         # otherwise it is the last part
         parts = player_url.split("/")
         if re.match(r"\d{4}-\d{2}", parts[-1]):
-            return parts[-2]
-        return parts[-1]
+            return int(parts[-2])
+        return int(parts[-1])
