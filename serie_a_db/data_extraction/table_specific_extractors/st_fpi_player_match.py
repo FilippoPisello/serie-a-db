@@ -1,8 +1,6 @@
 """Logic to extract data from the website fantacalcio.it."""
 
 import logging
-import random
-import time
 from typing import NamedTuple
 
 from bs4 import BeautifulSoup, Tag

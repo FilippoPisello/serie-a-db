@@ -2,9 +2,9 @@
 
 import logging
 import random
+import time
 import traceback
 from enum import StrEnum
-from time import time
 from typing import Any
 
 
@@ -24,11 +24,13 @@ def log_fatal_error(
 ) -> None:
     """Log a fatal error and raise the exception.
 
-    Args
+    Args:
+    ----
         logger: the logger to use.
         item_id: the id of the item being extracted, added to the log message.
         item_name: the name of the item being extracted, added to the log message
             to provide context.
+    
     """
     exception = traceback.format_exc()
     logger.exception(

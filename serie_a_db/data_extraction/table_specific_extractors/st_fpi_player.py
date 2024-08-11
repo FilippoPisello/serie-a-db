@@ -1,6 +1,6 @@
+"""Import the player list from Fantacalcio.it."""
+
 import logging
-import random
-import time
 from typing import NamedTuple
 
 from bs4 import BeautifulSoup
@@ -25,6 +25,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 class FpiPlayer(DbInputBaseModel):
+    """A player from the player master list in Fantacalcio.it."""
+
     load_ts: str
     season_id: str
     team_id: str
