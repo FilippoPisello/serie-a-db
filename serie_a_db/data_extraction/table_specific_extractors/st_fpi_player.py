@@ -12,6 +12,8 @@ from serie_a_db.data_extraction.clients.fantacalcio_punto_it_website import (
 from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
 from serie_a_db.data_extraction.table_specific_extractors.shared_definitions import (
     PlayerRole,
+    log_fatal_error,
+    sleep_not_to_overload_the_website,
 )
 from serie_a_db.data_extraction.table_specific_extractors.st_fpi_player_match import (
     translate_role,
@@ -61,11 +63,11 @@ def scrape_player_data(
         # is still imported
         try:
             player_matches.extend(parse_players_page(match_day_results_page, season_id))
-        except ValueError as err:
-            _log_fatal_error(season_id, err)
+        except ValueError:
+            log_fatal_error(LOGGER, season_id, "season")
             break
 
-        _sleep_not_to_overload_the_website(sleep_time)
+        sleep_not_to_overload_the_website(sleep_time)
 
     return player_matches
 
@@ -125,11 +127,6 @@ def parse_players_page(players_page: str, season_id: str) -> list[NamedTuple]:
     return output
 
 
-def _sleep_not_to_overload_the_website(sleep_time: int) -> None:
-    seconds_sleep = random.randint(sleep_time - 5, sleep_time + 5)
-    time.sleep(seconds_sleep)
-
-
 def _log_info_hit_max_seasons_to_scrape(max_match_days_to_scrape) -> None:
     LOGGER.info(
         "Reached the maximum number of match days to scrape (%s).",
@@ -139,11 +136,3 @@ def _log_info_hit_max_seasons_to_scrape(max_match_days_to_scrape) -> None:
 
 def _log_info_season_being_extracted(match_day_id: str) -> None:
     LOGGER.info("Extracting matches for match day %s...", match_day_id)
-
-
-def _log_fatal_error(match_day_id, err) -> None:
-    LOGGER.warning(
-        "Stopping the extraction at season %s due to error: %s",
-        match_day_id,
-        err,
-    )
