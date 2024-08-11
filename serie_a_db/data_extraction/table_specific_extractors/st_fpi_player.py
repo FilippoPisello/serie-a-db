@@ -100,6 +100,7 @@ def _get_seasons_to_import(db: Db) -> list[tuple[int, str]]:
 def parse_players_page(players_page: str, season_id: str) -> list[NamedTuple]:
     """Parse the page of a match day to extract a list of player matches."""
     soup = BeautifulSoup(players_page, "html.parser")
+    load_ts = now().isoformat(sep=" ", timespec="milliseconds")
 
     output = []
     for player in soup.find_all("tr", attrs={"class": "player-row"}):
@@ -118,7 +119,7 @@ def parse_players_page(players_page: str, season_id: str) -> list[NamedTuple]:
         output.append(
             FpiPlayer(
                 season_id=season_id,
-                load_ts=now().isoformat(sep=" ", timespec="milliseconds"),
+                load_ts=load_ts,
                 team_id=strip_whitespaces_and_newlines(team),
                 name=strip_whitespaces_and_newlines(name),
                 code=code,
