@@ -10,7 +10,7 @@ A_MATCHDAY_ID = "2023"
 
 def test_match_day_parsing_with_one_player():
     # Arrange
-    page = EXTRACTION_TEST_DATA_DIR / "fantacalcio_punto_it/one_player.html"
+    page = EXTRACTION_TEST_DATA_DIR / "fpi/player_match_one_player.html"
 
     # Act
     data = parse_match_day_page(page.read_text(), A_MATCHDAY_ID)
@@ -46,7 +46,7 @@ def test_match_day_parsing_with_one_player():
 
 def test_match_day_parsing_with_two_players_from_the_same_team():
     # Arrange
-    page = EXTRACTION_TEST_DATA_DIR / "fantacalcio_punto_it/two_players_same_team.html"
+    page = EXTRACTION_TEST_DATA_DIR / "fpi/player_match_two_players_same_team.html"
     expected_players_number = 2
 
     # Act
@@ -86,8 +86,7 @@ def test_match_day_parsing_with_two_players_from_the_same_team():
 def test_match_day_parsing_with_two_players_from_different_teams():
     # Arrange
     page = (
-        EXTRACTION_TEST_DATA_DIR
-        / "fantacalcio_punto_it/two_players_different_teams.html"
+        EXTRACTION_TEST_DATA_DIR / "fpi/player_match_two_players_different_teams.html"
     )
     expected_players_number = 2
 

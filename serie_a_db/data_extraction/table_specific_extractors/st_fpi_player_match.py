@@ -3,7 +3,6 @@
 import logging
 import random
 import time
-from enum import StrEnum
 from typing import NamedTuple
 
 from bs4 import BeautifulSoup, Tag
@@ -13,19 +12,13 @@ from serie_a_db.data_extraction.clients.fantacalcio_punto_it_website import (
     FantacalcioPuntoItWebsite,
 )
 from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
+from serie_a_db.data_extraction.table_specific_extractors.shared_definitions import (
+    PlayerRole,
+)
 from serie_a_db.db.client import Db
 from serie_a_db.utils import strip_whitespaces_and_newlines
 
 LOGGER = logging.getLogger(__name__)
-
-
-class PlayerRole(StrEnum):
-    """The available roles for a player."""
-
-    GOALKEEPER = "G"
-    DEFENDER = "D"
-    MIDFIELDER = "M"
-    ATTACKER = "A"
 
 
 class PlayerMatch(DbInputBaseModel):
@@ -170,7 +163,7 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
                     team_name=strip_whitespaces_and_newlines(team_name),
                     name=strip_whitespaces_and_newlines(name),
                     code=code,
-                    role=_translate_role(role),
+                    role=translate_role(role),
                     fantacalcio_punto_it_grade=website_grade,
                     fantacalcio_punto_it_fanta_grade=website_fanta_grade,
                     italia_grade=ita_grade,
@@ -206,7 +199,8 @@ def _extract_bonus(bonus: Tag, bonus_name: str) -> int:
     return int(bonus_value["data-value"])  # type: ignore
 
 
-def _translate_role(role: str) -> PlayerRole:
+def translate_role(role: str) -> PlayerRole:
+    """Convert a role string in italian to a PlayerRole."""
     _map = {
         "p": PlayerRole.GOALKEEPER,
         "d": PlayerRole.DEFENDER,
