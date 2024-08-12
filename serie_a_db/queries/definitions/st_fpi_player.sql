@@ -5,7 +5,7 @@ CREATE TABLE st_fpi_player (
     season_id STR NOT NULL,
     team_id STR NOT NULL,
     name STR NOT NULL,
-    code INT NOT NULL,
+    code_fpi INT NOT NULL,
     role STR NOT NULL CHECK (role IN ("G", "D", "M", "A")),
     price_initial INT NOT NULL,
     price_current FLOAT NOT NULL,
