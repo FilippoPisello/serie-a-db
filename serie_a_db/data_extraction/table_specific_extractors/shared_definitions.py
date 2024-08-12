@@ -50,7 +50,7 @@ def sleep_not_to_overload_the_website(sleep_time: int) -> None:
     time.sleep(seconds_sleep)
 
 
-def get_relevant_season(db: Db) -> str:
+def get_relevant_season(db: Db, close_connection: bool = True) -> str:
     """Return the ID of the season new data is about.
 
     Either the ongoing season - if any - otherwise the first upcoming one.
@@ -64,4 +64,5 @@ def get_relevant_season(db: Db) -> str:
         """
         return db.select(query)[0][0]
     finally:
-        db.close_connection()
+        if close_connection:
+            db.close_connection()
