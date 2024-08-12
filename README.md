@@ -21,3 +21,9 @@ https://www.legaseriea.it/api/stats/live/match?extra_link&order=oldest&lang=en&s
 
 All matchdays of a season
 https://www.legaseriea.it/api/season/120076/championship/A/matchday?lang=it
+
+Grandes Fantacalcio.it
+https://www.fantacalcio.it/voti-fantacalcio-serie-a
+
+Fantamaster API
+https://apicdn.fantamaster.it/playersstats/
