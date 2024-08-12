@@ -27,7 +27,7 @@ class PlayerMatch(DbInputBaseModel):
     match_day_id: str
     team_name: str
     name: str
-    code: int
+    code_fpi: int
     role: PlayerRole
     fantacalcio_punto_it_grade: float
     fantacalcio_punto_it_fanta_grade: float
@@ -162,7 +162,7 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
                     match_day_id=match_day_id,
                     team_name=strip_whitespaces_and_newlines(team_name),
                     name=strip_whitespaces_and_newlines(name),
-                    code=code,
+                    code_fpi=code,
                     role=translate_role(role),
                     fantacalcio_punto_it_grade=website_grade,
                     fantacalcio_punto_it_fanta_grade=website_fanta_grade,

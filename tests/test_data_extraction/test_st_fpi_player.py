@@ -28,7 +28,7 @@ def test_player_parsing_with_one_player(freeze_time):
             load_ts=DEFAULT_FROZEN_TIME.isoformat(sep=" ", timespec="milliseconds"),
             team_id="INT",
             name="Martinez L.",
-            code=2764,
+            code_fpi=2764,
             role=PlayerRole.ATTACKER,
             price_initial=41,
             price_current=41,

@@ -31,7 +31,7 @@ class FpiPlayer(DbInputBaseModel):
     season_id: str
     team_id: str
     name: str
-    code: int
+    code_fpi: int
     role: PlayerRole
     price_initial: NonNegativeInt
     price_current: NonNegativeInt
@@ -122,7 +122,7 @@ def parse_players_page(players_page: str, season_id: str) -> list[NamedTuple]:
                 load_ts=load_ts,
                 team_id=strip_whitespaces_and_newlines(team),
                 name=strip_whitespaces_and_newlines(name),
-                code=code,
+                code_fpi=code,
                 role=translate_role(role),
                 price_initial=price_initial,
                 price_current=price_current,

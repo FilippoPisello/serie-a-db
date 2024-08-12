@@ -2,7 +2,7 @@ CREATE TABLE st_fpi_player_match (
     match_day_id STR NOT NULL CHECK (LENGTH(match_day_id) = 6),
     team_name STR NOT NULL,
     name STR NOT NULL,
-    code INT NOT NULL,
+    code_fpi INT NOT NULL,
     role STR NOT NULL CHECK (role IN ("G", "D", "M", "A")),
     fantacalcio_punto_it_grade FLOAT NOT NULL,
     fantacalcio_punto_it_fanta_grade FLOAT NOT NULL,
