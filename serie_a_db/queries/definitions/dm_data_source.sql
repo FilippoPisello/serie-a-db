@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS dm_data_source (
 
 INSERT INTO dm_data_source (data_source_id, name)
 VALUES ('FM', 'Fantamaster'),
-    ('FPI', 'FantaCalcio.it') ON CONFLICT DO
+    ('FPI', 'FantaCalcio.it'),
+    ('ITA', 'Italia'),
+    ('ST', 'Statistical') ON CONFLICT DO
 UPDATE
 SET name = EXCLUDED.name;
