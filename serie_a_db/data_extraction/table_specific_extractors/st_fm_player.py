@@ -8,6 +8,7 @@ from serie_a_db.data_extraction.clients.fantamaster import FantamasterWebsite
 from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
 from serie_a_db.data_extraction.table_specific_extractors.shared_definitions import (
     PlayerRole,
+    get_relevant_season,
 )
 from serie_a_db.data_extraction.table_specific_extractors.st_fpi_player_match import (
     translate_role,
@@ -38,7 +39,7 @@ def scrape_player_data(
     if website_client is None:
         website_client = FantamasterWebsite()
 
-    season_id = _get_season_data_is_about(db)
+    season_id = get_relevant_season(db)
     load_ts = now().isoformat(sep=" ", timespec="milliseconds")
 
     raw_players = FantamasterWebsite.get_players()
@@ -55,16 +56,3 @@ def scrape_player_data(
         for player in raw_players
     ]
     return parsed_players
-
-
-def _get_season_data_is_about(db: Db) -> str:
-    try:
-        query = """
-        SELECT MIN(season_id)
-        FROM dm_season
-        WHERE
-            status IN ('ongoing', 'upcoming')
-        """
-        return db.select(query)[0][0]
-    finally:
-        db.close_connection()
