@@ -50,11 +50,9 @@ class TestMappings:
             PlayerMapping(season_id="S2023", code_fpi=1, code_fm=1).to_namedtuple()
         ]
 
-    def test_fm_player_without_a_match_should_result_in_a_none_match(self):
+    def test_fm_player_without_a_match_should_result_in_no_match(self):
         actual = find_player_mappings(
             {"JUV": set()}, {"JUV": {PlayerRecord.fake()}}, "S2023"
         )
 
-        assert actual == [
-            PlayerMapping(season_id="S2023", code_fpi=None, code_fm=1).to_namedtuple()
-        ]
+        assert actual == []

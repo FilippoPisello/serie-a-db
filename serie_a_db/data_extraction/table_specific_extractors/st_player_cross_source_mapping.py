@@ -25,7 +25,7 @@ class PlayerMapping(DbInputBaseModel):
     """
 
     season_id: str
-    code_fpi: int | None
+    code_fpi: int
     code_fm: int
 
 
@@ -182,14 +182,6 @@ def find_player_mappings(  # noqa: PLR0912
     unmatched_players = _regroup_unmatched_players(players_fm_copy)
     if unmatched_players:
         LOGGER.warning("%s players could not be matched", len(unmatched_players))
-    for player in unmatched_players:
-        mappings.append(
-            PlayerMapping(
-                season_id=season_id,
-                code_fpi=None,
-                code_fm=player.code,
-            ).to_namedtuple()
-        )
     return mappings
 
 

@@ -25,6 +25,9 @@ ignore = [
 "*/__init__.py" = [
     "F401", # unused import
 ]
+"serie_a_db/db/schema.py" = [
+    "E501", # pycodestyle: line too long
+]
 
 [tool.ruff]
 line-length = 90
