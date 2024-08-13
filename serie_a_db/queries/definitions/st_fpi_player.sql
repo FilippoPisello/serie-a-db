@@ -9,7 +9,7 @@ CREATE TABLE st_fpi_player (
     role STR NOT NULL CHECK (role IN ("G", "D", "M", "A")),
     price_initial INT NOT NULL,
     price_current FLOAT NOT NULL,
-    PRIMARY KEY (load_ts, code),
+    PRIMARY KEY (load_ts, code_fpi),
     FOREIGN KEY (season_id) REFERENCES dm_season (season_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     FOREIGN KEY (team_id) REFERENCES dm_team (team_id) ON UPDATE CASCADE ON DELETE RESTRICT
 );

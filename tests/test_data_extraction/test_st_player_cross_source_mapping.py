@@ -1,9 +1,7 @@
-import pytest
-
 from serie_a_db.data_extraction.table_specific_extractors.shared_definitions import (
     PlayerRole,
 )
-from serie_a_db.data_extraction.table_specific_extractors.st_player_cross_source_mapping import (
+from serie_a_db.data_extraction.table_specific_extractors.st_player_cross_source_mapping import (  # noqa: E501
     PlayerMapping,
     PlayerRecord,
     find_player_mappings,
@@ -52,20 +50,11 @@ class TestMappings:
             PlayerMapping(season_id="S2023", code_fpi=1, code_fm=1).to_namedtuple()
         ]
 
-    def test_fm_player_without_a_match_should_result_in_error(self):
-        with pytest.raises(ValueError):
-            find_player_mappings(
-                {"JUV": set()}, {"JUV": {PlayerRecord.fake()}}, "S2023"
-            )
+    def test_fm_player_without_a_match_should_result_in_a_none_match(self):
+        actual = find_player_mappings(
+            {"JUV": set()}, {"JUV": {PlayerRecord.fake()}}, "S2023"
+        )
 
-
-def test_lorem():
-    from serie_a_db.db.client import Db
-    from serie_a_db.db.schema import TABLES
-    from serie_a_db.db.update import DbUpdater
-
-    db = Db()
-    updated = DbUpdater(db, TABLES)
-    updated.update_table_and_upstream_dependencies(
-        TABLES["st_player_cross_source_mapping"]
-    )
+        assert actual == [
+            PlayerMapping(season_id="S2023", code_fpi=None, code_fm=1).to_namedtuple()
+        ]

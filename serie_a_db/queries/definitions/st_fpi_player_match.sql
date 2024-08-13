@@ -21,6 +21,6 @@ CREATE TABLE st_fpi_player_match (
     red_card INT NOT NULL CHECK (red_card IN (0, 1)),
     subbed_in INT NOT NULL CHECK (subbed_in IN (0, 1)),
     subbed_out INT NOT NULL CHECK (subbed_out IN (0, 1)),
-    PRIMARY KEY (match_day_id, team_name, code),
+    PRIMARY KEY (match_day_id, team_name, code_fpi),
     FOREIGN KEY (match_day_id) REFERENCES dm_match_day (match_day_id) ON UPDATE CASCADE ON DELETE RESTRICT
 );

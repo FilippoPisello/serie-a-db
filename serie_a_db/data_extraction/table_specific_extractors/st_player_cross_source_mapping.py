@@ -1,9 +1,10 @@
 """Perform the players matching across different sources."""
 
-from difflib import SequenceMatcher
+import logging
 from typing import NamedTuple, Self
 
-from pydantic import BaseModel, Field, PositiveInt
+from pydantic import BaseModel, PositiveInt
+from thefuzz import fuzz  # type: ignore
 
 from serie_a_db.data_extraction.input_base_model import DbInputBaseModel
 from serie_a_db.data_extraction.table_specific_extractors.shared_definitions import (
@@ -12,32 +13,48 @@ from serie_a_db.data_extraction.table_specific_extractors.shared_definitions imp
 )
 from serie_a_db.db.client import Db
 
+LOGGER = logging.getLogger(__name__)
+
+MIN_ACCEPTED_SIMILIARITY = 80
+
 
 class PlayerMapping(DbInputBaseModel):
+    """Mapping between two sources for a player.
+
+    Allows to identify the same player across different sources.
+    """
+
     season_id: str
-    code_fpi: int
+    code_fpi: int | None
     code_fm: int
 
 
 class PlayerRecord(BaseModel):
+    """Generic player record."""
+
     code: PositiveInt
     name: str
     role: PlayerRole
 
     def __hash__(self) -> int:
+        """Use the code as hash."""
         return self.code
 
-    def __eq__(self, other: Self) -> bool:
+    def __eq__(self, other: object) -> bool:
+        """Two players are equal if they have the same name and role."""
+        if not isinstance(other, PlayerRecord):
+            return NotImplemented
         return (self.name == other.name) and (self.role == other.role)
 
     @classmethod
     def fake(cls, **kwargs) -> Self:
+        """Create a fake player record for testing."""
         data = {
             "code": 1,
             "name": "Foo",
             "role": PlayerRole.ATTACKER,
         } | kwargs
-        return cls(**data)
+        return cls(**data)  # type: ignore
 
 
 def derive_mappings(db: Db | None = None) -> list[NamedTuple]:
@@ -76,7 +93,7 @@ def _get_players_from_db(
 
 
 def _structure(raw_records: list[tuple]) -> dict[str, set[PlayerRecord]]:
-    output = {}
+    output: dict[str, set[PlayerRecord]] = {}
     for record in raw_records:
         # Create a new team set if not already there
         if record[2] not in output:
@@ -93,7 +110,7 @@ def _structure(raw_records: list[tuple]) -> dict[str, set[PlayerRecord]]:
     return output
 
 
-def find_player_mappings(
+def find_player_mappings(  # noqa: PLR0912
     players_fpi: dict[str, set[PlayerRecord]],
     players_fm: dict[str, set[PlayerRecord]],
     season_id: str,
@@ -141,15 +158,17 @@ def find_player_mappings(
     for team_id, team_players_fm in players_fm_copy.items():
         # Need to wrap over set to create a copy and be able to modify the
         # existing main structures
-        best_match = (None, 0)
         for player_fm in set(team_players_fm):
+
+            best_match = (PlayerRecord.fake(), 0)
+
             for player_fpi in set(players_fpi_copy[team_id]):
-                score = SequenceMatcher(None, player_fm.name, player_fpi.name).ratio()
+                score = fuzz.partial_ratio(player_fm.name, player_fpi.name)
                 # Update the best match if new pair is better
                 if score > best_match[1]:
                     best_match = (player_fpi, score)
 
-            if best_match[1] >= 0.8:
+            if best_match[1] >= MIN_ACCEPTED_SIMILIARITY:
                 mappings.append(
                     PlayerMapping(
                         season_id=season_id,
@@ -157,20 +176,27 @@ def find_player_mappings(
                         code_fm=player_fm.code,
                     ).to_namedtuple()
                 )
-                players_fpi_copy[team_id].remove(player_fpi)
+                players_fpi_copy[team_id].remove(best_match[0])
                 players_fm_copy[team_id].remove(player_fm)
 
-    _raise_error_if_fm_players_without_a_match(players_fm_copy)
-
+    unmatched_players = _regroup_unmatched_players(players_fm_copy)
+    if unmatched_players:
+        LOGGER.warning("%s players could not be matched", len(unmatched_players))
+    for player in unmatched_players:
+        mappings.append(
+            PlayerMapping(
+                season_id=season_id,
+                code_fpi=None,
+                code_fm=player.code,
+            ).to_namedtuple()
+        )
     return mappings
 
 
-def _raise_error_if_fm_players_without_a_match(
-    players_fm_copy: dict[str, set[PlayerRecord]]
-) -> None:
-    unmatched_players = set()
-    for _, team_players_fm in players_fm_copy.items():
+def _regroup_unmatched_players(
+    players_fm: dict[str, set[PlayerRecord]]
+) -> set[PlayerRecord]:
+    unmatched_players: set[PlayerRecord] = set()
+    for _, team_players_fm in players_fm.items():
         unmatched_players = unmatched_players.union(team_players_fm)
-    if unmatched_players:
-        players_str = "\n".join(str(player) for player in unmatched_players)
-        raise ValueError(f"Could not match these players:\n{players_str}")
+    return unmatched_players

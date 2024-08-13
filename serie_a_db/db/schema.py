@@ -1,5 +1,7 @@
 """Schema for the Serie A database."""
 
+# noqa: E501
+from serie_a_db.data_extraction import table_specific_extractors
 from serie_a_db.data_extraction.table_specific_extractors.st_fm_player import (
     scrape_player_data as scrape_player_data_fm,
 )
@@ -15,9 +17,8 @@ from serie_a_db.data_extraction.table_specific_extractors.st_match import (
 from serie_a_db.data_extraction.table_specific_extractors.st_match_day import (
     scrape_match_day_data,
 )
-from serie_a_db.data_extraction.table_specific_extractors.st_player_cross_source_mapping import (
-    derive_mappings,
-)
+
+# noqa: E501
 from serie_a_db.db.table import DbTable
 from serie_a_db.db.table import StagingTable as St
 from serie_a_db.db.table import WarehouseTable as Wt
@@ -38,6 +39,7 @@ TABLES: dict[str, DbTable] = {
         "st_fpi_player_match", scrape_player_match_data
     ),
     "st_player_cross_source_mapping": St.from_file(
-        "st_player_cross_source_mapping", derive_mappings
+        "st_player_cross_source_mapping",
+        table_specific_extractors.st_player_cross_source_mapping.derive_mappings,
     ),
 }

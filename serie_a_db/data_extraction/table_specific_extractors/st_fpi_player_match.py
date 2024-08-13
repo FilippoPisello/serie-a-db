@@ -51,8 +51,8 @@ class PlayerMatch(DbInputBaseModel):
 def scrape_player_match_data(
     db: Db | None = None,
     website_client: FantacalcioPuntoItWebsite | None = None,
-    sleep_time: int = 30,
-    max_match_days_to_scrape: int = 18,
+    sleep_time: int = 15,
+    max_match_days_to_scrape: int = 1,
 ) -> list[NamedTuple]:
     """Extract data about players performance in a match."""
     if db is None:
@@ -107,7 +107,7 @@ def _get_match_days_to_import(db: Db) -> list[tuple[int, int, str]]:
             AND dms.year_start >= 2015
         GROUP BY dmmd.match_day_id
         HAVING IFNULL(COUNT(DISTINCT st.team_name), 0) < 20
-            OR IFNULL(COUNT(DISTINCT st.code), 0) < (20 * 12)
+            OR IFNULL(COUNT(DISTINCT st.code_fpi), 0) < (20 * 12)
         ORDER BY dms.year_start DESC,
             dmmd.number
         """
