@@ -30,6 +30,7 @@ TABLES: dict[str, DbTable] = {
     "dm_team": Wt.from_file("dm_team"),
     "dm_coach": Wt.from_file("dm_coach"),
     "ft_match": Wt.from_file("ft_match"),
+    "dm_player": Wt.from_file("dm_player"),
     # Staging tables
     "st_match_day": St.from_file("st_match_day", scrape_match_day_data),
     "st_match": St.from_file("st_match", scrape_match_data),
