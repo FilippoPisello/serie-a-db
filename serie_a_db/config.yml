@@ -3,6 +3,7 @@ parameters:
   bonus_goal: 3
   bonus_assist: 1
   bonus_clean_sheet: 1
+  bonus_goal_conceded: -1
   bonus_penalty_save: 3
   bonus_penalty_miss: -3
   bonus_own_goal: -3

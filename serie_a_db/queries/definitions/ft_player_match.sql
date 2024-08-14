@@ -36,11 +36,12 @@ WITH preload AS (
         sfpm.red_card,
         sfpm.subbed_in,
         sfpm.subbed_out,
-        sfpm.goals_scored * bonus_goal.value + sfpm.assists * bonus_assist.value + sfpm.own_goals * bonus_own_goal.value + sfpm.penalties_saved * bonus_penalty_save.value + sfpm.penalties_missed * bonus_penalty_miss.value + sfpm.yellow_card * bonus_yellow_card.value + sfpm.red_card * bonus_red_card.value + IIF(sfpm.role = 'G', sfpm.goals_conceded = 0, 0) * bonus_clean_sheet.value AS fanta_bonus_total
+        sfpm.goals_scored * bonus_goal.value + sfpm.assists * bonus_assist.value + sfpm.own_goals * bonus_own_goal.value + sfpm.penalties_saved * bonus_penalty_save.value + sfpm.penalties_missed * bonus_penalty_miss.value + sfpm.yellow_card * bonus_yellow_card.value + sfpm.red_card * bonus_red_card.value + IIF(sfpm.role = 'G', sfpm.goals_conceded = 0, 0) * bonus_clean_sheet.value + IIF(sfpm.role = 'G', sfpm.goals_conceded, 0) * bonus_goal_conceded.value AS fanta_bonus_total
     FROM st_fpi_player_match AS sfpm
         CROSS JOIN dm_parameter AS bonus_goal
         CROSS JOIN dm_parameter AS bonus_assist
         CROSS JOIN dm_parameter AS bonus_clean_sheet
+        CROSS JOIN dm_parameter AS bonus_goal_conceded
         CROSS JOIN dm_parameter AS bonus_penalty_save
         CROSS JOIN dm_parameter AS bonus_penalty_miss
         CROSS JOIN dm_parameter AS bonus_own_goal
@@ -49,6 +50,7 @@ WITH preload AS (
     WHERE bonus_goal.key = 'bonus_goal'
         AND bonus_assist.key = 'bonus_assist'
         AND bonus_clean_sheet.key = 'bonus_clean_sheet'
+        AND bonus_goal_conceded.key = 'bonus_goal_conceded'
         AND bonus_penalty_save.key = 'bonus_penalty_save'
         AND bonus_penalty_miss.key = 'bonus_penalty_miss'
         AND bonus_own_goal.key = 'bonus_own_goal'
