@@ -149,6 +149,7 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
             # Ignore players that didn't play long enough to get a grade
             if ita_grade is None:
                 continue
+            ita_fanta_grade = ita_fanta_grade or ita_grade
             website_grade = website_grade or ita_grade
             website_fanta_grade = website_fanta_grade or ita_fanta_grade
             stats_grade = stats_grade or ita_grade
