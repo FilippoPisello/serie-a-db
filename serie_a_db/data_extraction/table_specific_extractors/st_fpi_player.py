@@ -141,4 +141,4 @@ def _log_info_hit_max_seasons_to_scrape(max_match_days_to_scrape) -> None:
 
 
 def _log_info_season_being_extracted(season_id: str) -> None:
-    LOGGER.info("Extracting matches for season %s...", season_id)
+    LOGGER.info("Extracting players for season %s...", season_id)

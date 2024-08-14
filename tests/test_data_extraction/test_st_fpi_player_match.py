@@ -122,3 +122,17 @@ def test_match_day_parsing_with_two_players_from_different_teams():
             subbed_out=False,
         ).to_namedtuple()
     )
+
+
+def test_player_that_did_not_play_long_enough_should_be_skipped():
+    """Second player should be skipped."""
+    # Arrange
+    page = (
+        EXTRACTION_TEST_DATA_DIR / "fpi/player_match_two_players_one_did_not_play.html"
+    )
+
+    # Act
+    data = parse_match_day_page(page.read_text(), A_MATCHDAY_ID)
+
+    # Assert
+    assert len(data) == 1

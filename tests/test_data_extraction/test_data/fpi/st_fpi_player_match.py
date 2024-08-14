@@ -144,17 +144,11 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
 
             website, ita, stats = grades.find_all("div", attrs={"class": "pill"})
             website_grade, website_fanta_grade = _parse_grades(website)
+            # Ignore players that didn't play long enough to get a grade
+            if website_grade is None:
+                continue
             ita_grade, ita_fanta_grade = _parse_grades(ita)
             stats_grade, stats_fanta_grade = _parse_grades(stats)
-            # Ignore players that didn't play long enough to get a grade
-            if ita_grade is None:
-                continue
-            ita_fanta_grade = ita_fanta_grade or ita_grade
-            website_grade = website_grade or ita_grade
-            website_fanta_grade = website_fanta_grade or ita_fanta_grade
-            stats_grade = stats_grade or ita_grade
-            stats_fanta_grade = stats_fanta_grade or ita_fanta_grade
-
             yellow_card = "yellow-card" in str(grades)
             red_card = "red-card" in str(grades)
 
@@ -199,8 +193,8 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
 
 def _parse_grades(pill: Tag) -> tuple[None, None] | tuple[float, float]:
     grade = pill.find("span", attrs={"class": "player-grade"})["data-value"]  # type: ignore
-    # If the grade is 55 or 56, it means the player didn't play
-    if grade in ("55", "56"):
+    # If the grade is 55, it means the player didn't play
+    if grade == "55":
         return None, None
     fanta_grade = pill.find("span", attrs={"class": "player-fanta-grade"})["data-value"]  # type: ignore
     return float(grade.replace(",", ".")), float(fanta_grade.replace(",", "."))  # type: ignore

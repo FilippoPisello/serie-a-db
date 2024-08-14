@@ -4,11 +4,17 @@ CREATE TABLE st_fpi_player_match (
     name STR NOT NULL,
     code_fpi INT NOT NULL,
     role STR NOT NULL CHECK (role IN ("G", "D", "M", "A")),
-    fantacalcio_punto_it_grade FLOAT NOT NULL,
+    fantacalcio_punto_it_grade FLOAT NOT NULL CHECK (
+        fantacalcio_punto_it_grade BETWEEN 0 AND 10
+    ),
     fantacalcio_punto_it_fanta_grade FLOAT NOT NULL,
-    italia_grade FLOAT NOT NULL,
+    italia_grade FLOAT NOT NULL CHECK(
+        italia_grade BETWEEN 0 AND 10
+    ),
     italia_fanta_grade FLOAT NOT NULL,
-    statistical_grade FLOAT NOT NULL,
+    statistical_grade FLOAT NOT NULL CHECK(
+        statistical_grade BETWEEN 0 AND 10
+    ),
     statistical_fanta_grade FLOAT NOT NULL,
     goals_scored INT NOT NULL CHECK (goals_scored >= 0),
     goals_conceded INT NOT NULL CHECK (goals_conceded >= 0),
