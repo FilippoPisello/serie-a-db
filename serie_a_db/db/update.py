@@ -1,5 +1,6 @@
 """Logic to update the db."""
 
+from datetime import datetime
 
 from serie_a_db.db.client import Db
 from serie_a_db.db.table import DbTable
@@ -19,6 +20,7 @@ class DbUpdater:
         """
         self.db = db
         self.schema = schema
+        self.update_start_ts = datetime.now()
 
     def update_all_tables(self) -> None:
         """Update all tables in the schema."""
@@ -41,7 +43,7 @@ class DbUpdater:
             self.update_table_and_upstream_dependencies(self.schema[dependency])
 
         # Do not update if already updated at this runtime
-        if self.db.meta.was_updated_today(table.name):
+        if self.db.meta.was_updated_since(table.name, self.update_start_ts):
             return
 
         table.update(self.db)

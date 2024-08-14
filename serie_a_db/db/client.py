@@ -116,6 +116,13 @@ class DbMeta:
             return False
         return last_updated.date() == now().date()
 
+    def was_updated_since(self, table_name: str, since: datetime) -> bool:
+        """Return True if the table was updated since the passed datetime."""
+        last_updated = self.last_updated(table_name)
+        if last_updated is None:
+            return False
+        return last_updated >= since
+
     def last_updated(self, table_name: str) -> None | datetime:
         """Return the timestamp for the last update of this table."""
         try:
