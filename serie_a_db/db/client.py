@@ -26,9 +26,15 @@ class Db:
         """Create a Db instance in memory."""
         return cls(db_path=":memory:")
 
-    def select(self, statement: str, *args, **kwargs) -> list[tuple] | list:
+    def select(
+        self, statement: str, include_attributes: bool = False, *args, **kwargs
+    ) -> list[tuple] | list:
         """Return the results of a SELECT statement."""
-        return self.execute(statement, *args, **kwargs).fetchall()
+        content = self.execute(statement, *args, **kwargs).fetchall()
+        if not include_attributes:
+            return content
+        attributes = tuple(map(lambda x: x[0], self.cursor.description))
+        return [attributes] + content
 
     def execute(self, statement: str, *args, **kwargs) -> Cursor:
         """Execute a statement."""

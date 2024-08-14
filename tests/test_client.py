@@ -24,3 +24,15 @@ def test_getting_table_attributes(db: Db):
 
     # Assert
     assert attributes == ("dummy_attr", "dummy_attr2")
+
+
+def test_select_with_attribute_names(db: Db):
+    # Arrange
+    db.execute("CREATE TABLE st_dummy (dummy_attr INT, dummy_attr2 STR);")
+    db.execute("INSERT INTO st_dummy VALUES (1, 'a');")
+
+    # Act
+    actual = db.select("SELECT * FROM st_dummy", include_attributes=True)
+
+    # Assert
+    assert actual == [("dummy_attr", "dummy_attr2"), (1, "a")]

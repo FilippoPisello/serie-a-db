@@ -6,6 +6,7 @@ from argparse import ArgumentParser, Namespace
 
 from serie_a_db import CONFIG_FILE
 from serie_a_db.db.client import Db
+from serie_a_db.db.export import export_views_to_csv
 from serie_a_db.db.schema import TABLES
 from serie_a_db.db.update import DbUpdater
 from serie_a_db.utils import read_yaml
@@ -20,14 +21,21 @@ def main() -> None:
 
     db = Db()
 
-    if args.update:
-        LOGGER.info("Updating all tables in the database...")
-        db.meta.create_meta_tables()
-        db.meta.set_parameters(read_yaml(CONFIG_FILE)["parameters"])
-        builder = DbUpdater(db, schema=TABLES)
-        builder.update_all_tables()
+    try:
+        if args.update:
+            LOGGER.info("Updating all tables in the database...")
+            db.meta.create_meta_tables()
+            db.meta.set_parameters(read_yaml(CONFIG_FILE)["parameters"])
+            builder = DbUpdater(db, schema=TABLES)
+            builder.update_all_tables()
+            LOGGER.info("Update completed!")
+        if args.export:
+            LOGGER.info("Exporting views to CSV...")
+            export_views_to_csv(db)
+            db.close_connection()
+            LOGGER.info("Export completed!")
+    finally:
         db.close_connection()
-        LOGGER.info("Update completed!")
 
 
 def _parse_args() -> Namespace:
@@ -37,6 +45,12 @@ def _parse_args() -> Namespace:
         action="store_true",
         default=False,
         help="Update all the tables in the database.",
+    )
+    parser.add_argument(
+        "--export",
+        action="store_true",
+        default=False,
+        help="Export the views to CSV.",
     )
     return parser.parse_args()
 
