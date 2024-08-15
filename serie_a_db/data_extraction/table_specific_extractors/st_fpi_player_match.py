@@ -51,8 +51,8 @@ class PlayerMatch(DbInputBaseModel):
 def scrape_player_match_data(
     db: Db | None = None,
     website_client: FantacalcioPuntoItWebsite | None = None,
-    sleep_time: int = 15,
-    max_match_days_to_scrape: int = 38,
+    sleep_time: int = 30,
+    max_match_days_to_scrape: int = 1,
 ) -> list[NamedTuple]:
     """Extract data about players performance in a match."""
     if db is None:
@@ -71,18 +71,18 @@ def scrape_player_match_data(
             break
 
         _log_info_match_day_being_extracted(match_day_id)
-        match_day_results_page = website_client.get_grades_page(
-            season_year_start, match_day_number
-        )
 
         # Try getting all the matches for the match day. If one fails, stop
         # without erroring out so that what successfully extracted so far
         # is still imported
         try:
+            match_day_results_page = website_client.get_grades_page(
+                season_year_start, match_day_number
+            )
             player_matches.extend(
                 parse_match_day_page(match_day_results_page, match_day_id)
             )
-        except ValueError:
+        except (ValueError, ConnectionError):
             log_fatal_error(LOGGER, match_day_id, "match day")
             break
 
@@ -158,7 +158,7 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
             yellow_card = "yellow-card" in str(grades)
             red_card = "red-card" in str(grades)
 
-            goals_scored = _extract_bonus(bonuses, "Gol segnati")
+            goals_scored_excl_penalties = _extract_bonus(bonuses, "Gol segnati")
             goals_conceded = _extract_bonus(bonuses, "Gol subiti")
             own_goals = _extract_bonus(bonuses, "Autoreti")
             penalties_scored = _extract_bonus(bonuses, "Rigori segnati")
@@ -179,7 +179,7 @@ def parse_match_day_page(grades_page: str, match_day_id: str) -> list[NamedTuple
                     italia_fanta_grade=ita_fanta_grade,
                     statistical_grade=stats_grade,
                     statistical_fanta_grade=stats_fanta_grade,
-                    goals_scored=goals_scored,
+                    goals_scored=goals_scored_excl_penalties + penalties_scored,
                     goals_conceded=goals_conceded,
                     own_goals=own_goals,
                     penalties_scored=penalties_scored,
