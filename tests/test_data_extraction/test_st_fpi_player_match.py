@@ -136,3 +136,15 @@ def test_player_that_did_not_play_long_enough_should_be_skipped():
 
     # Assert
     assert len(data) == 1
+
+
+def test_penalties_should_be_counted_in_goals_scored():
+    # Arrange
+    page = EXTRACTION_TEST_DATA_DIR / "fpi/player_match_one_player_scored_penalty.html"
+
+    # Act
+    data = parse_match_day_page(page.read_text(), A_MATCHDAY_ID)
+
+    # Assert
+    assert data[0].goals_scored == 1
+    assert data[0].penalties_scored == 1
